@@ -1,0 +1,778 @@
+问题
+=============
+
+移动语义
+---------------------
+1. 下⾯关于左值与右值说法正确的是( B )
+
+A) 基本类型是左值，两个基本类型经运算符表达式计算后的结果也是左值
+B) 数组是左值，数组的元素也是左值
+C) 函数是右值，函数的返回值也是右值
+D) 指针是右值，指针解引⽤后的对象也是右值
+
+2. 以下程序的输出是( B )
+
+A) &  &&              
+B) &  &                
+C) &&  &&                
+D) && &
+
+.. code-block:: cpp
+
+    using CCharArray=const char[6];
+    void process(CCharArray&& data)
+    {
+        cout<<"&& ";
+    }
+    void process(CCharArray& data)
+    {
+        cout<<"& ";
+    }
+
+    int main()
+    {
+        const char s1[6]="hello";
+        process(s1);
+        process("hello");
+    }
+
+3. 以下程序的输出是( A )
+
+A) &  &&              
+B) &  &                
+C) &&  &&                
+D) && &
+
+.. code-block:: cpp
+
+    void invoke(string&& data)
+    {
+        cout<<"&& "<<endl;
+    }
+    void invoke(string& data)
+    {
+        cout<<"& "<<endl;
+    }
+
+    int main()
+    {    
+        string s2="hello";
+        invoke(s2);
+        invoke("hello");
+    }
+
+ 
+
+4. 下⾯关于std::move(data)说法正确的是( AC )
+
+A) 如果data的类型不⽀持移动构造和赋值操作，那么std::move不起作⽤，移动请求退化为拷⻉操作。
+B) 如果data类型的移动构造和移动赋值操作没有添加noexcept，那么std::move不起作⽤，移动请求退化为拷⻉操作。
+C) 如果data是个const左值参数，那么std::move不起作⽤，移动请求退化为拷⻉操作。
+D) 如果data参数的声明类型是个右值引⽤，那么std::move不起作⽤，移动请求退化为拷⻉操作。
+
+5. 下列代码说法正确的是( C )
+
+A) pt移动后地址会变为nullptr  
+B) pt移动后x, y 会变为0  
+C) pt移动后，地址不变，x,y 也保持不变  
+D) pt移动后，内存会析构
+
+.. code-block:: cpp
+
+    struct Point{
+        int x;
+        int y;
+    };
+
+    void process(Point&& p){
+        cout<<&p<<":"<<p.x<<","<<p.y<<endl;
+    }
+
+    int main(){
+        Point pt{100,200};
+        cout<<&pt<<":"<<pt.x<<","<<pt.y<<endl;
+        process(std::move(pt));
+    }
+
+6. 下列代码说法正确的是( C )
+
+A) p1移动后地址会变为nullptr, p2将获得p1的指针值
+B) p1移动后地址会变为nullptr, p2也将为nullptr 
+C) p1移动后地址不变, p2将获得和p1相同的地址值   
+D) p1移动后地址不变, p2将获得nullptr 
+
+.. code-block:: cpp
+
+    struct Point{
+        int x;
+        int y;
+    };
+
+    int main(){
+        Point * p1=new Point{100,200}; 
+        Point * p2=std::move(p1);
+    }
+
+7. 假设Sub类是Base类的⼦类，Base类⾃定义实现了正确的移动构造和移动赋值操作符，下列代码说法正确的是( D )
+
+A) 编译器⽆法为Sub⾃动⽣成移动构造和移动赋值操作符，必须⼿⼯⾃定义Sub的移动构造和移动赋值操作符。
+B) 编译器可以为Sub⾃动⽣成移动构造和移动赋值操作符，但它不会⾃动调⽤Base的移动构造和移动赋值操作符。
+C) 如果Sub类需要⼿⼯⾃定义移动构造和移动赋值操作符，⽆需⼿⼯调⽤Base的移动构造和移动赋值操作符，编译器会⾃动调⽤。
+D) 如果Sub类需要⼿⼯⾃定义移动构造和移动赋值操作符，必须⼿⼯调⽤Base的移动构造和移动赋值操作符，编译器不会⾃动调⽤。
+
+ 
+
+8. 下列代码说法正确的是( B )
+
+A) 编译器不会为Widget⽣成 拷⻉构造函数、赋值操作符、移动构造函数、移动赋值操作符。
+B) 编译器不会为Widget⽣成 移动构造函数、移动赋值操作符，但会⽣成拷⻉构造函数、赋值操作符。
+C) 编译器会为Widget⽣成 拷⻉构造函数、赋值操作符、移动构造函数、移动赋值操作符。
+D) 编译器不会为Widget⽣成 拷⻉构造函数、赋值操作符，但会⽣成移动构造函数、移动赋值操作符。
+
+.. code-block:: cpp
+
+    class Widget{
+        string s;
+
+        ~Widget(){
+            cout<<"dtor"<<endl;
+        }
+    };
+
+9. 下列代码说法正确的是( B )
+
+A) getData会执⾏vector的移动赋值，getArr会执⾏array的移动赋值。
+B) getData会执⾏vector的移动赋值，getArr会执⾏Widget的移动赋值。
+C) getData会执⾏Widget的移动赋值，getArr会执⾏array的移动赋值。
+D) getData会执⾏Widget的移动赋值，getArr会执⾏Widget的移动赋值。
+
+.. code-block:: cpp
+
+    vector<Widget> getData()
+    {
+        vector<Widget> vec(10);
+        return vec;
+    }
+
+    array<Widget,20> getArr()
+    {
+        array<Widget,20> arr;
+        return arr;
+    }
+
+    int main()
+    {
+        vector<Widget> v;
+        v=getData();
+        array<Widget,20> am;
+        am=getArr(); 
+    }
+
+ 
+
+10. 下⾯关于返回值优化的说法哪个正确？ ( C ) 
+
+A) 因为有了返回值优化，类型不需要提供拷⻉构造函数 和 移动构造函数。
+B) 如果返回值优化有效，并且类型⽀持移动构造和移动赋值的话，则对返回值调⽤std::move 会优化性能。
+C) 如果返回值优化有效，⽆论类型是什么，都没有必要再对返回值调⽤std::move
+D) NRVO (具名返回值优化)是C++17标准的强制性要求；RVO(未名返回值优化)，是编译器的优化选项，不是标准强制
+
+
+智能指针
+--------------
+1. 下⾯关于unique_ptr的说法哪个正确？ ( D )
+
+A) 存储成本和裸指针相同，⽆性能负担
+B) 既可以管理堆对象指针、也可以管理栈对象指针、也可以管理资源句柄
+C) 拥有独占所有权，编译器可以确保⼀个裸指针 仅被⼀个unique_ptr对象管理
+D) 不⽀持拷⻉构造，仅⽀持移动，移动之后所有权转移
+
+2. 对下列代码，描述正确的是：( C )
+
+A) 编译正确，运⾏也正确   
+B) 编译错误   
+C) 编译正确，运⾏错误    
+D) 编译正确，运⾏性能不好
+
+.. code-block:: cpp
+
+    void ProcessWidget(std::unique_ptr<Widget> upwg)
+    {
+        upwg->data = 12;
+    }
+
+    void UsingWidget()
+    {
+        Widget *twg = new Widget();
+        ProcessWidget(std::unique_ptr<Widget>(twg));
+        delete twg;
+    }
+
+3. 对下列代码，描述正确的是：( D )
+
+A) setWidget函数内 m_w=w 不需要对w调⽤std::move，c1.setWidget(upw) 也不需要对upw调⽤std::move。
+B) setWidget函数内 m_w=w 不需要对w调⽤std::move，c1.setWidget(upw) 需要对upw调⽤std::move。
+C) setWidget函数内 m_w=w 需要对w调⽤std::move，c1.setWidget(upw) 不需要对upw调⽤std::move。
+D) setWidget函数内 m_w=w 需要对w调⽤std::move，c1.setWidget(upw) 也需要对upw调⽤std::move。
+
+.. code-block:: cpp
+
+    class MyClass {
+        unique_ptr<Widget> m_w;
+    public:
+
+    void setWidget(unique_ptr<Widget> w)
+        {
+            m_w=w;
+        }
+    };
+
+    int main()
+    {
+        MyClass c1;
+        unique_ptr<Widget> upw{new Widget()};
+        c1.setWidget(upw);
+    }
+
+4. 关于下⾯代码，描述正确的是：( C )
+
+A) 编译错误， 因为unique_ptr不⽀持拷⻉构造。
+B) 编译正确， 但运⾏会错误，因为unique_ptr移动后会把this设置为nullptr。
+C) 编译正确， 但运⾏会错误，因为unique_ptr移动后抢夺了this的所有权，会导致this指针被误删除。
+D) 编译正确， 运⾏也正确。
+
+.. code-block:: cpp
+
+    class Widget{
+
+    public:
+        unique_ptr<Widget> getWidget() {
+            return unique_ptr<Widget>(this); 
+        }
+    };
+
+5. 关于下⾯代码，描述正确的是：( D )
+
+A) 编译错误，因为unique_ptr不⽀持拷⻉构造。
+B) 编译正确，但MyClass⽆法⽀持拷⻉构造、移动构造、赋值操作符、移动赋值操作符。
+C) 编译正确，但MyClass不⽀持拷⻉构造和赋值操作符，如果要⽀持需要⼿动实现拷⻉构造和赋值操作符，移动构造、移动赋值、析构函数编译器会⾃动⽣成。
+D) 编译正确，但MyClass不⽀持拷⻉构造和赋值操作符，如果要⽀持需要⼿动实现拷⻉构造和赋值操作符，同时要将移动构造、移动赋值、析构函数设置为=default。
+
+.. code-block:: cpp
+
+    struct MyClass {
+        std::unique_ptr<Widget> wptr;
+    };
+
+6. 下⾯关于unique_ptr API的说法哪个正确？ ( D )
+
+A) 调⽤get() 之后得到裸指针，需要⾃⼰负责delete
+B) 调⽤release() 之后，unique_ptr会执⾏移动构造，从⽽转移所有权。
+C) 调⽤reset() 之后，unique_ptr对象本身的地址 和 其内封装的原⽣指针都将为nullptr。
+D) 即使⾃定义unique_ptr的删除器，，仍将执⾏RAII机制进⾏确定性删除调⽤。
+
+7. 下⾯关于make_unique 的说法哪个正确？ ( D )
+
+A) make_unique ⽐ unique_ptr 构造器性能好。
+B) make_unique ⽐ unique_ptr 构造器性能差，因为如果传递右值参数，make_unique 会调⽤参数的拷⻉构造。
+C) make_unique 可以⾃定义删除器，⽽unique_ptr构造器⽆法⾃定义删除器。
+D) 对于process(unique_ptr , unique_ptr )函数，使⽤make_unique⽐unique_ptr构造器在异常情况下更安全。
+
+8. 下⾯关于unique_ptr 转型操作的说法哪个正确？ ( BD )
+
+A) unique_ptr pb{ new Sub()} 错误，不能将⼦类指针存在⽗类智能指针内。
+B) unique_ptr pb{ new Sub()} 正确，允许将⼦类指针存在⽗类智能指针内。
+C) unique_ptr ps {dynamic_cast<Sub*>(pb.get())} 错误，应该使⽤std::move 对pb.get()返回值进⾏所有权移动。
+D) unique_ptr ps {dynamic_cast<Sub*>(pb.get())} 错误，应该使⽤pb.release()替换get()释放pb所有权。
+
+.. code-block:: cpp
+
+    struct Base { };
+    struct Sub: Base {};
+    unique_ptr<Base> pb{ new Sub()};
+    unique_ptr<Sub> ps {dynamic_cast<Sub*>(pb.get())};
+        
+
+9. 以下程序的输出是( C )
+
+A) false &. true &&.      
+B) false &. false &.         
+C) false &. true &.        
+D) true &. true &.
+
+.. code-block:: cpp
+
+    struct Widget{};
+
+    template<typename T>
+    void process(T&& w)
+    {
+        cout<< std::is_rvalue_reference_v<decltype(w)>;
+        invoke(w);
+    }
+    void invoke(Widget& w)
+    {
+        cout<<" &. ";
+    }
+    void invoke(Widget&& w)
+    {
+        cout<<" &&. ";
+    }
+    int main()
+    {
+        cout << std::boolalpha;
+        Widget w;
+        process(w);
+        process(std::move(w));
+    }
+
+10. 下列代码说法正确的是( C )
+
+A) invoke1("hello") 调⽤时， data 被解析为右值引⽤
+B) invoke2("hello") 调⽤时， data 被解析为右值引⽤
+C) invoke1("hello"s) 调⽤时，data 被解析为右值引⽤
+D) invoke2("hello"s) 调⽤时，data 被解析为左值引⽤
+
+.. code-block:: cpp
+
+    template<typename T>
+    void invoke1( T&& data) 
+    { ... }
+
+    template<typename T>
+    void invoke2( T& data) 
+    { ... }
+
+    invoke1("hello");
+    invoke2("hello");
+    invoke1("hello"s);
+    invoke2("hello"s);
+
+
+11. 下⾯关于shared_ptr 的说法哪个正确？ ( D )
+
+A)默认存储成本和裸指针相同，如果有多个引⽤计数，则除了裸指针之外、要增加⼀个8字节成员存储
+引⽤计数值。
+B)调⽤reset() 之后，将释放shared_ptr所有的引⽤计数，并执⾏析构函数。
+C)调⽤get() 之后得到裸指针，需要⾃⼰负责delete
+D)shared_ptr 拷⻉之后，引⽤计数将增⼀; shared_ptr析构后，引⽤计数将减⼀。
+
+12. 对下列代码，描述正确的是：( C )
+
+A) 是很好的代码实践，避免了内存泄漏 
+B)编译错误，shared_ptr不能使⽤指针参数构造 
+C)是不好的代码实践，shared_ptr不应该获取指针参数的所有权  
+D)是不好的代码实践，应该使⽤unique_ptr替换shared_ptr
+
+.. code-block:: cpp
+
+    struct Widget { int data; };
+    void SomeFunc(Widget* w)
+    {
+        std::shared_ptr<Widget> wsp(w);
+        wsp->data = 12;
+    }
+
+13. 下⾯关于make_shared 的说法哪个正确？ ( B )
+
+A) make_shared可以⾃定义删除器，⽽shared_ptr构造器⽆法⾃定义删除器。
+B) make_shared绝⼤多数情况⽐shared_ptr构造器性能好，因为make_shared将原⽣对象和引⽤计数块合并在⼀块内存⾥，节省new/delete的调⽤次数，也更缓存友好。
+C) make_shared绝⼤多数情况⽐shared_ptr构造器性能差，因为make_shared间接调⽤了shared_ptr构造器。
+D) make_shared 和 shared_ptr构造器没啥区别，因为make_shared内部内联调⽤了构造器。
+
+14. 下⾯关于shared_ptr 转型操作的说法哪个正确？ ( D )
+
+A) shared_ptr pb{ new Sub()} 错误，不能将⼦类指针存在⽗类共享指针内。
+B) shared_ptr pb{ new Sub()} 错误，因为Base基类没有定义虚析构函数。
+C) shared_ptr ps {dynamic_cast<Sub*>(pb.get())} 正确，pb 和ps现在共享引⽤计数为2。
+D) shared_ptr ps {dynamic_cast<Sub*>(pb.get())} 错误，应该使⽤dynamic_pointer_cast进⾏共享指针转型。
+
+.. code-block:: cpp
+
+    struct Base { };
+    struct Sub: Base {  };
+    shared_ptr<Base> pb{ new Sub()};
+    shared_ptr<Sub> ps {dynamic_cast<Sub*>(pb.get())};
+        
+
+15. 下⾯关于enable_shared_from_this说法正确的是？( A )
+
+A) 公有继承enable_shared_from_this后，要使⽤shared_from_this()来获取this对象的共享指针。
+B) 公有继承enable_shared_from_this后，也可以使⽤ shared_ptr{this} 来获取this对象的共享指针。
+C) 可以通过栈对象、堆对象、或者共享指针对象上的实例函数内部调⽤shared_from_this()。
+D) 必须公有继承enable_shared_from_this是为了在⼦类内初始化 weak_this指针数据成员。
+
+
+模板
+-------------- 
+
+1. 下列模板类的成员函数和成员模板函数，定义错误的是： ( D )
+
+A) 
+
+.. code-block:: cpp
+
+    template<typename T>
+    struct Widget{
+        void process(T arg){  }
+    };
+
+B) 
+
+.. code-block:: cpp
+
+    template<typename T>
+    struct Widget{
+        template<typename U>
+        void process(U arg){  }
+    };
+
+C) 
+
+.. code-block:: cpp
+
+    template<typename T>
+    struct Widget{
+        virtual void process(T arg){  }
+    };
+
+D) 
+
+.. code-block:: cpp
+
+    template<typename T>
+    struct Widget{
+        template<typename U>
+        virtual void process(U arg){  }
+    };
+
+
+2. 下⾯关于模板函数重载辨析的说法哪个正确？ ( D )
+
+.. code-block:: cpp
+
+    template<typename T>
+    void process(T val1, T& val2)
+    {
+        cout<<val1<<val2<<endl;
+    }
+    int data1=100;
+    int& data2=data1;
+
+A) process(data1, data1);  val1类型为int, val2类型为int
+B) process(data2, data2);  val1 类型为int&, val2 类型为int&
+C) process(data1, data2);  val1 类型为int, val2 类型为int&&
+D) process(data2, data1);  val1 类型为int, val2 类型为int&
+
+ 
+
+3. 下列 Widget 模板特化版本，定义不正确的是： ( D )
+
+.. code-block:: cpp
+
+    template<typename U, typename V>
+    struct Widget {
+    void process(){
+        cout<<"Widget<U, V>"<<endl;
+    }
+    };
+
+A) 
+
+.. code-block:: cpp
+
+    template<typename U>
+    struct Widget<U, char> {
+    void process(){
+        cout<<"Widget<U,char>"<<endl;
+    }
+    };
+
+B) 
+
+.. code-block:: cpp
+
+    template<typename V>
+    struct Widget<char, V> {
+    void process(){
+        cout<<"Widget<char,V>"<<endl;
+    }
+    };
+
+C) 
+
+.. code-block:: cpp
+
+    template<>
+    struct Widget<char, double> {
+        void process(){
+            cout<<"Widget<char, double>"<<endl;
+        }
+    };
+
+D) 
+
+.. code-block:: cpp
+
+    template<typename U, typename V>
+    struct Widget<int, int> {
+        void process(){
+            cout<<"Widget<U, char>"<<endl;
+        }
+    };
+
+4. 关于下⾯的zero函数，希望对集合元素进⾏默认初始化。对于 元素类型为int和bool的vector模板容器，都运⾏正确的是：( C )
+
+A) 
+
+.. code-block:: cpp
+
+    void zero(auto& container){
+        for(auto& val: container){
+            val={};
+        }
+    }
+
+B) 
+
+.. code-block:: cpp
+
+    void zero(auto&& container){
+        for(auto& val: container){
+            val={};
+        }
+    }
+
+C) 
+
+.. code-block:: cpp
+
+    void zero(auto& container){
+        for(auto&& val: container){
+            val={};
+        }
+    }
+
+D) 
+
+.. code-block:: cpp
+
+    void zero(auto container){
+        for(auto val: container){
+            val={};
+        }
+    }
+
+ 
+
+5. 下⾯关于 CRTP 奇异递归模板模式 的说法哪个正确？ ( C )
+
+A) 将⽗类this转为⼦类指针T，既可以使⽤static_cast<T>(this)，也可以使⽤dynamic_cast<T*>(this)。
+B) CRTP类型删除时不能直接使⽤delete，因为编译器⽣成⼦类的析构函数不调⽤⽗类的析构函数。
+C) CRTP使⽤编译时多态，相对于虚函数的运⾏时多态，具有⼀定的性能优势。
+D) CRTP类的模板参数T，未来实例化时，可以是CRTP类的⼦类、也可以是其⽗类。
+
+6. 下⾯关于函数对象，哪个说法是错误的？ ( A )
+
+A) 函数对象⽐函数指针性能⾼，是因为函数对象为空类，不占⽤内存；⽽函数指针⼤⼩为⼀个指针⻓度，占⽤内存。
+B) 函数对象可以通过定义实例数据成员，从⽽携带状态数据。
+C) 函数对象内可以定义多个operator()操作符重载，从⽽⽀持使⽤不同参数调⽤函数对象。
+D) 函数对象的调⽤使⽤的是编译时绑定，函数指针的调⽤使⽤的是运⾏时绑定。
+
+7. 下⾯哪个lambda表达式的定义是错误的？( C )
+
+A) 
+
+.. code-block:: cpp
+
+    auto lam=[]{ };
+
+B) 
+
+.. code-block:: cpp
+
+    int d1=1;
+    auto lam=[=]() mutable { d1++;}; 
+
+C) 
+
+.. code-block:: cpp
+
+    int d1=1, d2=2;
+    auto lam=[&,&d2]{ d1++; d2++;};
+
+D) 
+
+.. code-block:: cpp
+
+    int d1=1, d2=2;
+    auto lam=[=,&d2]{ d2=d1+10;}; 
+
+8. 对于下⾯的lambda对象，它的size有多⼤： ( C )
+
+.. code-block:: cpp
+
+    struct Point{
+        double x;
+        double y;
+    };
+
+    Point p1{10,20};
+    Point p2{30,40};
+
+    auto lambda = [p1,&p2] ()
+    {
+            p2.x=p1.y;
+            p2.y=p1.x;
+    };
+
+A) 32 bytes  
+B) 16 bytes  
+C) 24 bytes  
+D) 8 bytes
+
+9. 对于下⾯lambda表达式的应⽤，正确的说法是？ ( D )
+
+.. code-block:: cpp
+
+    class Point{
+      public:
+        double x,y;
+
+        auto invoke()
+        {
+            auto lamb = [this] ()
+            {
+                x++;
+                y++;
+            };
+            return lamb;
+        }
+    };
+
+    auto process()
+    {
+        Point p1{100,200};
+        auto lambda=p1.invoke();
+        return lambda;
+    }
+
+    int main(){
+        auto lam=process();
+        lam();
+    }
+
+A) invoke内的lamb捕获了this, ⽽内部⼜修改了x和y，因此需要在 this 后⾯加mutable.
+B) invoke内的lamb捕获了this, ⽽内部⼜修改了x和y，因此需要使⽤ [&this] 引⽤捕获。
+C) process函数内lambda捕获了p1，p1被拷⻉进⼊lambda，返回之后p1销毁，但lambda对象内的this对象不受影响。
+D) process函数内lambda捕获了p1，返回之后p1销毁，lambda对象内的this指针将出现空悬指针错误。
+
+
+10. 关于下列lambda表达式⽣命周期管理，说法正确的是： ( B )
+
+.. code-block:: cpp
+
+    struct Widget: public enable_shared_from_this<Widget>{
+        int data;
+        auto getLambda(){
+            auto self=shared_from_this();
+            auto lam=[this,self]() {
+                data++;
+            }; 
+            return lam;
+        }
+    };
+
+A) this 进⾏的是值捕获，因此内部更改data++，对this对象⽆影响。
+B) 通过shared_from_this()创建this的共享引⽤，从⽽使得Lambda表达式和this的⽣存周期⼀致。
+C) Widget对象将来可以创建栈对象、堆对象、unique_ptr或者shared_ptr对象，来调⽤getLambda()函数。
+D) 如果使⽤shared_ptr 对象调⽤getLambda()，调⽤之后对其引⽤计数⽆影响。
+
+11. 下⾯关于std::variant的说法哪个错误？ ( C )
+
+A) variant⽀持RAII语义，栈对象在作⽤域结束时可以确定性析构。
+B) variant相对于union最⼤的优势是其具备对象语义，⽀持拷⻉、移动、赋值、析构操作。
+C) sizeof(variant)和其运⾏时赋值的具体对象的size等同。
+D) 如果是多选⼀场景，基本类型推荐使⽤union，对象类型推荐使⽤variant
+
+12. 下⾯关于std::any的说法哪个正确？ ( C )
+
+A) any是个泛型类，⽀持存储“任意类型”的对象。
+B) 所有⾃定义类型都继承⾃any，实现了多态基类的存储能⼒。
+C) any存储的对象如果⽀持拷⻉、移动、赋值、析构操作，any也会委托调⽤它们。
+D) sizeof(any) 会根据any存储的对象⼤⼩不同，⽽不同。
+
+13. 下⾯关于std::function的说法哪个错误？( BD )
+
+A) std:function可以绑定函数对象、函数指针、成员函数指针、Lambda表达式、函数适配器
+B) std::function 内部存储的是指针，因此不⽀持绑定对象的拷⻉、移动、赋值、析构操作。
+C) 其调⽤有运⾏时成本，相对Lambda表达式、函数对象的调⽤性能差。
+D) std::function 是个泛型类，其sizeof会根据绑定的对象类型⼤⼩不同，⽽不同。
+
+14. 关于type trait的说法，哪个错误？( B )
+
+A) trait可以是具体类型(不⽤模板参数化)，也可是模板类型。
+B) trait实现了类型计算，可以放在运⾏时、也可以放在编译时。
+C) trait聚合了相关各种相关类型和常量，⼀般不包含成员函数
+D) trait基于类型特征提供正交设计，policy基于⾏为提供正交设计
+
+15. 根据下⾯trait结构的设计，哪个是正确的？( C )
+
+A) traits::tag 的类型是 int
+B) traits::Tag1的类型是 tag
+C) traits::tag 的类型是 Tag1
+D) traits<decltype("abc")>::tag 的类型是 Tag2  
+
+.. code-block:: cpp
+
+    struct Tag1 {};
+    struct Tag2 {};
+
+    template <typename T>
+    struct traits {
+        using tag= Tag1 ;
+    };
+
+    template <>
+    struct traits<std::string> {
+        using tag= Tag2 ;
+    };
+
+16. 关于SFINAE的说法，哪个错误？( B )
+
+A) SFINAE指模板编译过程，如果替换参数T产⽣失败或⽆意义值，则发⽣替换错误，忽略失败(不是错误)，不产⽣该模板参数对应的构造
+B) SFINAE既可以发⽣在函数的模板参数的替换过程 , 也可以发⽣在 模板函数内部的模板参数实例化过程。
+C) enable_if 如果表达式产⽣true，那么其type将为第⼆个参数传⼊的类型(默认为void)
+D) enable_if 如果表达式产⽣false，那么使⽤SFINAE忽略错误
+
+ 
+
+17. 关于Strategy设计模式 和 Policy Design的说法，哪个错误？( D )
+
+A) Strategy模式和Policy Design 都是将⼀个类或算法的设计分解为各种策略，找到正交分解点。
+B) Policy Design 为泛型函数和类型提供可配置⾏为，基于⾏为提供正交设计的灵活性。
+C) Policy Deisgn 通常为可调⽤构造，配置为模板参数。通常包含成员函数，也可以是类的静态成员模板。
+D) Strategy模式基于虚函数的静态绑定提供多态性，Policy Design基于模板的动态绑定提供多态性。
+
+ 
+
+18. 关于constexpr的说法，哪个正确？( C )
+
+A) constexpr变量不能更改，但不要求编译时值确定；const变量要求编译时值确定，且不能更改。
+B) constexpr函数不能传递运⾏时变量，会导致编译错误。
+C) constexpr函数⽀持数学运算，也⽀持判断、条件、循环语句。
+D) 名称和参数列表、返回值都⼀样的函数，可以定义有constexpr和⽆constexpr的重载版本。
+
+19. 关于概念(Concept)的说法，哪个正确？( B )
+
+A) 概念存储在栈上，它的内存⽣命周期由系统⾃动管理。
+B) 所有的概念都是对类型参数T的编译时谓词求值，结果为true或false。
+C) 概念可以定义在全局范围，类内，函数内。
+D) 模板参数有概念约束的版本，可以参与重载辨析；⽆概念约束的通⽤版本更优先辨析。
+
+20. 关于概念(Concept)和抽象类的说法，哪个错误？( B )
+
+A) 概念⽀持编译期多态，抽象类⽀持运⾏期多态。
+B) 概念⽀持定义数据成员、函数成员、操作符、特殊成员(构造、移动)等各种实现；抽象类仅⽀持虚函数实现。
+C) 概念⽀持与(&&)、或(||)逻辑运算；抽象类只能通过继承表达特化关系。
+D) 概念⽀持隐式实现，接⼝满⾜即可、⽆侵⼊性；抽象类需要显式实现，必须通过继承，具有侵⼊性。

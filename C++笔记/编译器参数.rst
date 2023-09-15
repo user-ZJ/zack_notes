@@ -1,0 +1,114 @@
+编译器参数
+==========================
+
+__attribute__
+----------------------------
+attribute 是 GCC 和 Clang 编译器的一个扩展，用于向编译器传递一些特殊的指示或属性。
+它可以用于函数、变量、类型等各种声明中，以指定一些特殊的行为或属性。
+
+attribute 的语法如下：
+
+:: 
+
+    __attribute__((attribute-list))
+
+其中，attribute-list 是一个逗号分隔的属性列表，每个属性都是一个字符串，表示要应用的属性名称和参数。
+
+
+__attribute__((constructor))
+`````````````````````````````````````````
+确保此函数在 在main函数被调用之前调用，iOS中在+load之后main之前执行。
+
+constructor和destructor会在ELF文件中添加两个段-.ctors和.dtors。
+当动态库或程序在加载时，会检查是否存在这两个段，如果存在执行对应的代码。
+
+.. code-block:: cpp
+
+    __attribute__((constructor))
+    static void beforeMain(void) {
+        NSLog("beforeMain");
+    }
+    __attribute__((constructor(101))) // 里面的数字越小优先级越高，1 ~ 100 为系统保留
+
+__attribute__((destructor))
+```````````````````````````````````````
+.. code-block:: cpp
+
+    __attribute__((destructor))
+    static void afterMain(void) {
+        NSLog("afterMain");
+    }
+
+__attribute__((cleanup))
+```````````````````````````````````
+用于修饰一个变量，在它的作用域结束时可以自动执行一个指定的方法
+
+.. code-block:: cpp
+
+    // void(^block)(void)的指针是void(^*block)(void)
+    static void blockCleanUp(__strong void(^*block)(void)) {
+        (*block)();
+    }
+
+used
+`````````````
+used的作用是告诉编译器，我声明的这个符号是需要保留的。
+被used修饰以后，意味着即使函数没有被引用，在Release下也不会被优化。
+如果不加这个修饰，那么Release环境链接器会去掉没有被引用的段。
+
+nonnull
+```````````````
+这个属性指定函数的的某些参数不能是空指针
+
+objc_runtime_name
+`````````````````````````````
+用于 @interface 或 @protocol，将类或协议的名字在编译时指定成另一个
+
+noreturn
+```````````````````````
+noreturn属性指定像这样的任何不需要返回值的函数。
+当遇到类似函数还未运行到return语句就需要退出来的情况，该属性可以避免出现错误信息。
+
+
+noinline & always_inline
+`````````````````````````````````````
+内联函数:内联函数从源代码层看，有函数的结构，而在编译后，却不具备函数的性质。
+内联函数不是在调用时发生控制转移，而是在编译时将函数体嵌入在每一个调用处。
+编译时，类似宏替换，使用函数体替换调用处的函数名。
+一般在代码中用inline修饰，但是能否形成内联函数，需要看编译器对该函数定义的具体处理
+
+warn_unused_result
+```````````````````````````
+当函数或者方法的返回值很重要时，要求调用者必须检查或者使用返回值，否则编译器会发出警告提示。
+
+deprecated
+`````````````````
+不建议使用的版本，意味着使用者应该移除这个方法的使用。
+
+obsoleted
+```````````````````
+被废弃的版本，意味着已经被移除，不能够使用了。
+
+
+visibility
+`````````````````````
+用于指定符号的默认可见性。在 C/C++ 中，每个函数、变量、类等都会被编译成一个符号，用于在链接时进行符号解析和重定位。
+默认情况下，这些符号的可见性是全局的，即可以在其他文件中访问。
+
+.. code-block:: cpp
+
+    __attribute__((visibility("default")))  //默认，设置为：default之后就可以让外面的类看见了。
+    __attribute__((visibility("hideen")))  //隐藏
+    __attribute__((visibility("protected")))  
+
+
+
+常见的属性
+```````````````
+aligned(n)：指定变量或类型的对齐方式为 n 字节。
+packed：指定变量或类型按照最小的字节对齐方式进行对齐。
+section("name")：指定变量或函数所在的段名称为 name。
+deprecated：标记函数或变量已经过时，编译器会发出警告。
+noreturn：标记函数不会返回，可以用于优化代码。
+unused：标记变量或函数未使用，编译器会发出警告。
+

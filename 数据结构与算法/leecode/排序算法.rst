@@ -1,0 +1,399 @@
+排序算法
+=====================
+
+排序算法分为 **内部排序** 和 **外部排序** 。
+
+**内部排序**：元素个数相对来说比较少(少于几百万)，可以在主存中完成。
+
+**外部排序**：不能在主存中完成，必须在磁盘或磁带上完成的排序
+
+内部排序：
+
+* 存在几种容易的算法以 :math:`O(N^2)` 排序，如插入排序
+* 有一种算法叫做谢尔排序(Shellsort),它编程非常简单，以 :math:`O(N^2)` 运行，并在实践中很有效
+* 还有一些稍微复杂的 Nlog(N) 的排序算法
+* 任何通用的排序算法均需要 Nlog(N) 次比较
+
+STL中的排序算法
+-------------------------
+在STL中，排序算法是通过使用函数模板sort来完成的。sort的参数是容器的头尾标志以及一个可选的比较器
+
+.. code-block:: cpp
+
+    void sort(Iterator begin,Iterator end);
+    void sort(Iterator begin,Iterator end,Comparator cmp);
+
+    sort(v.begin(),v.end()); // 升序排列
+    sort(v.begin(),v.end(),greater<int>()); // 降序排列
+    sort(v.begin(),v.begin()+(v.end()-v.begin())/2); // 对前半部分升序排列
+
+sort算法不能保证相等的项保持它们原始的序列(如果这很重要的话，可以使用stable_sort来替代sort)。
+
+
+插入排序
+-----------------
+插入排序是最简单的排序算法之一,算法复杂度为 :math:`O(N^2)` 。插入排序由N-1趟排序组成。
+对于p=1到N-1趟，插入排序保证从位置0到位置p上的元素为已排序状态。
+
+每趟后的插入排序
+
+.. image:: /images/数据结构/insertionSort1.jpg
+
+.. code-block:: cpp
+
+    template <typename Comparable>
+    void insertionSort(std::vector<Comparable> &a) {
+        int j;
+        for (int p = 1; p < a.size(); p++) {
+            Comparable tmp = a[p];
+            for (j = p; j > 0 && tmp < a[j - 1]; j--) {
+                a[j] = a[j - 1];
+            }
+            a[j] = tmp;
+        }
+    }
+
+
+**迭代器实现**
+
+.. code-block:: cpp
+
+    template <typename Iterator, typename Comparator, typename Object>
+    void insertionSort(const Iterator &begin, const Iterator &end, Comparator lessThan, const Object &obj) {
+        Iterator j;
+        for (Iterator p = begin + 1; p != end; ++p) {
+            Object tmp = *p;
+            for (j = p; j != begin && lessThan(tmp, *(j - 1)); --j) {
+                *j = *(j - 1);
+            }
+            *j = tmp;
+        }
+    }
+
+    template <typename Iterator, typename Comparator>
+    void insertionSort(const Iterator &begin, const Iterator &end, Comparator lessThan) {
+        if (begin != end) insertionSort(begin, end, lessThan, *begin);
+    }
+    // 由于排序算法中需要使用到Object，所以新增一个Object模板参数来辅助实现
+    template <typename Iterator, typename Object>
+    void insertionSortHelp(const Iterator &begin, const Iterator &end, const Object &obj) {
+        insertionSort(begin, end, std::less<Object>());
+    }
+
+    template <typename Iterator>
+    void insertionSort(const Iterator &begin, const Iterator &end) {
+        if (begin != end) insertionSortHelp(begin, end, *begin);
+    }
+
+
+谢尔排序
+-----------------
+谢尔排序(Shellsort)的名称源于它的发明则Donald Shell,该算法是冲破二次时间屏障的第一批算法之一，
+不过，直到它最初被发现的若干年后，才证明了它的亚二次时间界( :math:`O(N^2)` )
+
+谢尔排序通过比较相聚一定间隔的元素来工作；各趟比较所用的距离随着算法的进行而减小，直到只比较相邻元素的最后一趟排序为止。
+由于这个原因，谢尔排序有时也叫做 **缩减增量排序**。
+
+希尔排序使用一个序列 :math:`h_1,h_2,...,h_t` ,叫做增量序列。只要 :math:`h_1=1`,任何增量序列都是可行的（建议使用 :math:`h_t=N/2(向下取整)和h_k=h_{k+1}/2(向下取整)` ）。
+不过有些增量序列比另外一些增量序列更好。
+在使用一趟 :math:`h_k` 的一趟排序之后，对于每个i我们有 :math:`a[i] \leq a[i+h_k]` ；所有相隔 :math:`h_k` 的元素都被排序。此时称文件是 :math:`h_k` 排序的。
+
+.. image:: /images/数据结构/Shellsort1.jpg
+
+:math:`h_k` 排序的一般做法是，对于 :math:`h_k,h_{k+1},...,N-1` 中的每一个位置i，把其上的元素放到 :math:`i,i-h_k,i-2h_k,...` 中间的正确位置上。
+仔细观察可发现，一趟 :math:`h_k` 排序的作用就是对 :math:`h_k` 个独立的子数组执行一次 **插入排序**。
+
+.. code-block:: cpp
+
+    template <typename Comparable>
+    void shellSort(std::vector<Comparable> &a) {
+        for(int gap=a.size()/2;gap>0;gap/=2){
+            for(int i=gap;i<a.size();i++){
+                Comparable tmp = a[i];
+                int j = i;
+                for(;j>=gap&&tmp<a[j-gap];j-=gap){
+                    a[j] = a[j-gap];
+                }
+                a[j] = tmp;
+            }
+        }
+    }
+
+
+堆排序
+-------------------
+创建一个最小堆，将N个元素插入到最小堆中，这个阶段花费O(N)时间。然后执行deleteMin操作。按照顺序，最小的元素先离开堆。
+通过将这些元素记录到第二个数组然后再将数组拷贝回来，得到N个元素的排序。由于每个deleteMin操作花费O(logN)时间，因此总运行时间为O(NlogN)
+
+该算法的主要问题在于，它使用了一个附加的数组，因此存储需求增加一倍，在某些实例中这可能是个问题。
+
+在我们的算法实现中，使用一个最大堆。第一步以线性时间建立堆；然后通过将堆中的最后元素与第一个元素交换，缩减堆大小并进行下虑，来执行N-1次deleteMax操作。
+当算法终止时数组则以所排的顺序包含这些元素。
+
+.. code-block:: cpp
+
+    inline int leftChild(int i) {
+        return 2 * i + 1;
+    }
+
+    /*
+    i: 下滤的元素位置
+    n: 堆的实际大小
+    */
+    template <typename Comparable>
+    void percDown(std::vector<Comparable> &a, int i, int n) {
+        int child;
+        Comparable tmp;
+        for (tmp = a[i]; leftChild(i) < n; i = child) {
+            child = leftChild(i);
+            if (child != n - 1 && a[child] < a[child + 1]) { child++; }
+            if (tmp < a[child]) {
+            a[i] = a[child];
+            } else {
+            break;
+            }
+        }
+        a[i] = tmp;
+    }
+
+    template <typename Comparable>
+    void heapSort(std::vector<Comparable> &a) {
+        for(int i=a.size()/2;i>=0;i--){
+            percDown(a, i, a.size());
+        }
+        for (int j = a.size() - 1; j > 0; j--) {
+            std::swap(a[0], a[j]);  // deleteMax
+            percDown(a, 0, j);
+        }
+    }
+
+.. _归并排序:
+
+归并排序
+--------------------
+归并排序以O(NlogN)最坏情形运行时间运行。而所使用的比较次数几乎是最优的。它是递归算法的一个很好实例。
+
+这个算法中基本操作是合并两个已排序的表。因为两个表是已排序的，所以若将输出放到第三个表，
+则该算法可以通过对输入数据的一趟排序来完成。
+
+基本的合并算法是取两个输入数组A和B、一个输出数组C以及3个计数器(Actr、Bctr和Cctr)，它们初始位置对应数组的开始端。
+A[Actr]和B[Bctr]中的较小者被复制到C中的下一个位置，相关计数器向前推进一步。当两个输入表有一个用完时，
+则将另一个表中的剩余部分拷贝到C中。
+
+归并排序算法描述：如果N=1，直接返回，否则递归的将前半部分和后半部分数据各自归并排序，得到排序后的两部分数据，
+然后再使用上面描述的合并算法将这两部分合并到一起。
+
+.. code-block:: cpp
+
+    template <typename Comparable>
+    void merge(std::vector<Comparable> &a, std::vector<Comparable> &tmpArray, int leftPos, int rightPos, int rightEnd) {
+        int leftEnd = rightPos - 1;
+        int tmpPos = leftPos;
+        int numElements = rightEnd - leftPos + 1;
+
+        while (leftPos <= leftEnd && rightPos <= rightEnd) {
+            if (a[leftPos] <= a[rightPos]) {
+                tmpArray[tmpPos++] = a[leftPos++];
+            } else {
+                tmpArray[tmpPos++] = a[rightPos++];
+            }
+        }
+        while (leftPos <= leftEnd) {
+            tmpArray[tmpPos++] = a[leftPos++];
+        }
+        while (rightPos <= rightEnd) {
+            tmpArray[tmpPos++] = a[rightPos++];
+        }
+        for (int i = 0; i < numElements; i++, rightEnd--) {
+            a[rightEnd] = tmpArray[rightEnd];
+        }
+    }
+
+    template <typename Comparable>
+    void mergeSort(std::vector<Comparable> &a, std::vector<Comparable> &tmpArray, int left, int right) {
+        if (left < right) {
+            int center = (left + right) / 2;
+            mergeSort(a, tmpArray, left, center);
+            mergeSort(a, tmpArray, center + 1, right);
+            merge(a, tmpArray, left, center + 1, right);
+        }
+    }
+
+
+    template <typename Comparable>
+    void mergeSort(std::vector<Comparable> &a) {
+        std::vector<Comparable> tmpArray(a.size());
+        mergeSort(a, tmpArray, 0, a.size() - 1);
+    }
+
+.. code-block:: cpp
+
+    // 归并排序（C++-迭代版）
+    template<typename T>
+    void merge_sort(T arr[], int len) {
+        T* a = arr;
+        T* b = new T[len];
+        for (int seg = 1; seg < len; seg += seg) {
+            for (int start = 0; start < len; start += seg + seg) {
+                int low = start, mid = min(start + seg, len), high = min(start + seg + seg, len);
+                int k = low;
+                int start1 = low, end1 = mid;
+                int start2 = mid, end2 = high;
+                while (start1 < end1 && start2 < end2)
+                    b[k++] = a[start1] < a[start2] ? a[start1++] : a[start2++];
+                while (start1 < end1)
+                    b[k++] = a[start1++];
+                while (start2 < end2)
+                    b[k++] = a[start2++];
+            }
+            T* temp = a;
+            a = b;
+            b = temp;
+        }
+        if (a != arr) {
+            for (int i = 0; i < len; i++)
+                b[i] = a[i];
+            b = a;
+        }
+        delete[] b;
+    }
+
+.. _快速排序:
+
+快速排序
+---------------
+
+.. code-block:: cpp
+
+    #include<iostream>
+    #include<chrono>      //std::chrono::seconds
+    #include <shared_mutex>
+    #include <string>
+    #include <stdio.h> 
+    #include<map>
+    #include <unordered_map>
+
+
+    using namespace std;
+
+    void quickSort(int s[], int l, int r)
+    {
+        if (l< r)
+        {
+            int i = l, j = r, x = s[l];
+            while (i < j)
+            {
+                while (i < j && s[j] >= x) // 从右向左找第一个小于x的数
+                    j--;
+                if (i < j)
+                    s[i++] = s[j];
+                while (i < j && s[i]< x) // 从左向右找第一个大于等于x的数
+                    i++;
+                if (i < j)
+                    s[j--] = s[i];
+            }
+            s[i] = x;
+            quickSort(s, l, i - 1); // 递归调用
+            quickSort(s, i + 1, r);
+        }
+    }
+
+
+    void quicksort2(vector<int> &vec,int l,int r){
+        if(l>=r) return;
+        int label = vec[l];
+        int lt=l,rt=r;
+        while(lt<rt){
+            while(lt<rt && vec[rt]>=label) rt--;
+            while(lt<rt && vec[lt]<=label) lt++;
+            if(lt<rt) swap(vec[lt],vec[rt]);
+        }
+        swap(vec[l],vec[lt]);
+        quicksort2(vec, l, lt-1);
+        quicksort2(vec, rt+1, r);
+    }
+
+    int main()
+    {   
+        auto begin_t = std::chrono::steady_clock::now();
+        int array[] = { 1,34,65,12,43,67,5,78,10,3,70 }, k;
+        int len = sizeof(array) / sizeof(int);
+        cout << "The orginal arrayare:" << endl;
+        for (k = 0; k<len; k++)
+            cout << array[k] << ",";
+        cout << endl;
+        quickSort(array, 0, len - 1);
+        cout << "The sorted arrayare:" << endl;
+        for (k = 0; k<len; k++)
+            cout << array[k] << ",";
+        cout << endl;
+
+        auto finish_t = std::chrono::steady_clock::now();
+        double timecost = std::chrono::duration<double, std::milli>(finish_t - begin_t).count();
+        cout << timecost<< endl;
+        
+        system("pause");
+        return 0;
+    }
+
+
+桶排序(bucketSort)
+--------------------------
+为使桶排序能够正常工作，必须要有一些附加的信息。
+输入数据 :math:`A_1,A_2,...,A_N` ,必须只由小于M的正整数组成。
+如果是这种情况，那么算法很简单：使用一个大小为M的count数组，它被初始化为全0。
+于是count有M个单元（或称桶），这些桶初始化为空。当读 :math:`A_i` 时， :math:`count[A_i]` 增加1。
+在所有输入数据读入后，扫描count数组，打印排序后的表。该算法用时O(M+N)。
+
+通过使用适当的桶增值，算法在单位时间内实质上执行了一个M路的比较。
+
+
+外部排序
+----------------
+**外部排序**：不能在主存中完成，必须在磁盘或磁带上完成的排序
+
+简单算法
+`````````````````````
+基本外部排序算法使用归并排序中的合并算法。
+
+设有四盘磁带 :math:`T_{a1},T_{a2},T_{b1},T_{b2}`,他们是两盘输入磁带和两盘输出磁带。
+设数据最初在 :math:`T_{a1}` 上，并设内存可以一次容纳（和排序）M个记录。
+一种自然的做法是首先从输入磁带一次读入M个记录，在内部将这些记录排序，然后再把排过序的记录交替的写到 :math:`T_{b1},T_{b2}` 上。
+我们把每组排过序的记录叫做一个 **顺串**。做完这些后，倒回所有磁盘。
+
+.. image:: /images/数据结构/outSort1.jpg
+
+现在 :math:`T_{b1},T_{b2}` 包含一组顺串。我们将每个磁盘的第一个顺串取出并将二者合并，把结果写到 :math:`T_{a1}` 上。
+注意，合并两个排过序的表是简单的操作，几乎不需要内存，因为合并是在:math:`T_{b1},T_{b2}` 前进时进行的。
+然后每盘磁带取出下一个顺串，合并，并将结果写到 :math:`T_{a2}` 上。继续这个过程，交替使用 :math:`T_{a1},T_{a2}`。
+直到得到一个长为N的顺串。
+
+.. image:: /images/数据结构/outSort2.jpg
+.. image:: /images/数据结构/outSort3.jpg
+
+
+多路合并
+`````````````````````
+如果有额外的磁带，那么可以减少将输入数据排序的趟数，通过将基本的（2路）合并扩充为k路合并就能做到这一点。
+
+两个顺串的合并操作通过将每一个输入磁带转到每个顺串的开头来进行。然后，找到较小的元素，把它放到输出磁带上，并将相应的输入磁带向前推进。
+
+如果有k盘输入磁带，那么这种方法以相同的方式工作，唯一的区别在于，它找到k个元素中最小的元素的过程稍微复杂一些。
+可以使用优先队列找出这些元素中的最小元，为了得到下一个写到磁盘的元素，进行一次deleteMin操作。将相应的磁带向前推进，
+如果输出磁带上的顺串尚未完成，那么将新元素insert到优先队列中。
+
+.. image:: /images/数据结构/outSort4.jpg
+
+多相合并
+```````````````````
+k路合并方法需要使用2k盘磁带，这对某些应用极为不便，只使用k+1盘磁带也有可能完成排序的工作。作为例子，我们阐述只用3盘磁带如何完成2路合并。
+
+设有三盘磁带T1,T2,T3,在T1上有一个输入文件，它将产生34个顺串。
+把34个顺串不均衡的分成两份。设把21个顺串放到T2上，而把13个顺串放到T3上。然后将13个顺串合并到T1直到T3用完。
+此时可以倒回T1和T3，然后将13个顺串的T1和8个顺串的T2合并到T3。此时，合并8个顺串直到T2用完为止。
+这样在T1上将留下5个顺串，T3上8个顺串。然后再合并T1和T3，等等。
+
+.. image:: /images/数据结构/outSort5.jpg
+
+顺串最初分配会造成很大的不同，如果顺串的个数是一个斐波那契数 :math:`F_N` ,那么分配这些顺串最好的方式是把它们分裂成两个数 :math:`F_{N-1}和F_{N-2}`
+否则为了将顺串个数补足成一个斐波那契数就必须用一些哑顺串来填补磁带。

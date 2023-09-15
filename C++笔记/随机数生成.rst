@@ -1,0 +1,6 @@
+.. _随机数生成:
+
+随机数生成
+========================
+
+.. literalinclude:: code/random_example.cpp

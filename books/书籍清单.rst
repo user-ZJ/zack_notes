@@ -1,0 +1,42 @@
+书籍清单
+=====================
+
+书籍下载：
+
+https://zh.annas-archive.org/search?lang=&content=&ext=&sort=&q=C%2B%2B+Primer+Plus%E4%B8%AD%E6%96%87
+
+https://en.annas-archive.org/
+
+https://zlibrary-east.se/?signAll=1&ts=1034
+
+https://ylibrary.org
+
+https://zbook.lol
+
+https://zlib.missuo.me
+
+
+
+C++
+-------------
+* C++核心指南  https://github.com/lynnboy/CppCoreGuidelines-zh-CN/blob/master/CppCoreGuidelines-zh-CN.md
+
+:download:`C++核心指南 <./CppCoreGuidelines-zh-CN.pdf>`
+
+Linux
+-----------------
+* Linux高性能服务器编程 
+* Linux多线程服务端编程
+* Linux系统编程/UNIX环境高级编程
+
+网络
+----------------
+* TCP/IP网络编程
+* TCP/IP详解
+* 高效TCP/IP编程
+* 计算机网络，自顶向下方法
+
+数据库
+------------------
+* 高性能MySQL
+* MySQL 是怎样运行的：从根儿上理解 MySQL

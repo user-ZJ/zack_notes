@@ -1,0 +1,38 @@
+缩写
+===========
+CUDA:Compute Unified Device Architecture(计算统一设备架构)
+
+OpenACC: open accelerators
+
+HPC:High Performance Computing
+
+GPUs:Graphic Computing Units
+
+ILP:Instruction-Level Parallelism
+
+BLAS:Basic Linear Algebra Specification
+
+CUPTI:CUDA Profiler Tools Interface
+
+CDP:CUDA dynamic parallelism
+
+MPS：Multi-Process Service
+
+MPI: Message Passing Interface
+
+DGX:NVIDIA DGX，它是由NVIDIA推出的一系列高性能计算系统。DGX代表Deep Learning GPU (Graphics Processing Unit) System，意味着它是专门为深度学习任务设计和优化的计算平台。
+
+NCCL:NVIDIA Collective Communication Library
+
+NVTX:NVIDIA Tools Extension
+
+NVML:NVIDIA Management Library
+
+ECC:error-correcting code
+
+LCN：是Local Contrast Normalization的缩写，是一种图像增强技术，用于增强图像的对比度和亮度。它通过对图像的局部区域进行归一化，使得图像的边缘和噪声更加突出，从而提高图像的视觉质量。
+
+SIMTs:Single Instruction Multiple Threads
+
+TLB:Translation Lookaside Buffer
+

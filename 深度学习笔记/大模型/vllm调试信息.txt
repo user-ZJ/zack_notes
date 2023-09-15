@@ -1,0 +1,50 @@
+Initializing an LLM engine with config: model='/models/Baichuan-13B-Chat', tokenizer='/models/Baichuan-13B-Chat', tokenizer_mode=auto, trust_remote_code=True, dtype=torch.float16, download_dir=None, load_format=auto, tensor_parallel_size=2, seed=0
+                                     hf_config=BaiChuanConfig {
+INFO 09-13 05:55:38 llm_engine.py:72]   "_from_model_config": true,
+INFO 09-13 05:55:38 llm_engine.py:72]   "architectures": [
+INFO 09-13 05:55:38 llm_engine.py:72]     "BaichuanForCausalLM"
+INFO 09-13 05:55:38 llm_engine.py:72]   ],
+INFO 09-13 05:55:38 llm_engine.py:72]   "auto_map": {
+INFO 09-13 05:55:38 llm_engine.py:72]     "AutoConfig": "configuration_baichuan.BaichuanConfig",
+INFO 09-13 05:55:38 llm_engine.py:72]     "AutoModelForCausalLM": "modeling_baichuan.BaichuanForCausalLM"
+INFO 09-13 05:55:38 llm_engine.py:72]   },
+INFO 09-13 05:55:38 llm_engine.py:72]   "bos_token_id": 1,
+INFO 09-13 05:55:38 llm_engine.py:72]   "eos_token_id": 2,
+INFO 09-13 05:55:38 llm_engine.py:72]   "hidden_act": "silu",
+INFO 09-13 05:55:38 llm_engine.py:72]   "hidden_size": 5120,
+INFO 09-13 05:55:38 llm_engine.py:72]   "initializer_range": 0.02,
+INFO 09-13 05:55:38 llm_engine.py:72]   "intermediate_size": 13696,
+INFO 09-13 05:55:38 llm_engine.py:72]   "max_position_embeddings": 4096,
+INFO 09-13 05:55:38 llm_engine.py:72]   "model_max_length": 4096,
+INFO 09-13 05:55:38 llm_engine.py:72]   "model_type": "baichuan",
+INFO 09-13 05:55:38 llm_engine.py:72]   "num_attention_heads": 40,
+INFO 09-13 05:55:38 llm_engine.py:72]   "num_hidden_layers": 40,
+INFO 09-13 05:55:38 llm_engine.py:72]   "pad_token_id": 0,
+INFO 09-13 05:55:38 llm_engine.py:72]   "rms_norm_eps": 1e-06,
+INFO 09-13 05:55:38 llm_engine.py:72]   "tie_word_embeddings": false,
+INFO 09-13 05:55:38 llm_engine.py:72]   "torch_dtype": "bfloat16",
+INFO 09-13 05:55:38 llm_engine.py:72]   "transformers_version": "4.33.1",
+INFO 09-13 05:55:38 llm_engine.py:72]   "use_cache": true,
+INFO 09-13 05:55:38 llm_engine.py:72]   "vocab_size": 64000
+INFO 09-13 05:55:38 llm_engine.py:72] }
+INFO 09-13 03:55:44 llm_engine.py:84] CacheConfig: block_size=16, gpu_memory_utilization=0.9, swap_space_bytes=4294967296, num_gpu_blocks=None, num_cpu_blocks=None
+INFO 09-13 03:55:44 llm_engine.py:90] ParallelConfig: pipeline_parallel_size=1, tensor_parallel_size=2, worker_use_ray=True, world_size=2
+INFO 09-13 03:55:44 llm_engine.py:95] SchedulerConfig: max_num_batched_tokens=2560, max_num_seqs=256, max_model_len=4096, 
+INFO 09-13 03:55:44 llm_engine.py:99] distributed_init_method=None, log_stats=False
+
+INFO 09-13 06:32:46 worker.py:134] peak_memory:14353307648 total_gpu_memory:25438126080 cache_block_size:6553600 num_gpu_blocks:1303 num_cpu_blocks:655
+
+
+每个prompt加入到waiting队列
+
+/root/miniconda3/lib/python3.9/site-packages/vllm/core/scheduler.py:122
+/root/miniconda3/lib/python3.9/site-packages/vllm/core/scheduler.py:272
+/root/miniconda3/lib/python3.9/site-packages/vllm/worker/cache_engine.py:74
+/root/miniconda3/lib/python3.9/site-packages/vllm/worker/worker.py:299
+/root/miniconda3/lib/python3.9/site-packages/vllm/engine/llm_engine.py:286
+/root/miniconda3/lib/python3.9/site-packages/vllm/engine/llm_engine.py:573
+/root/miniconda3/lib/python3.9/site-packages/vllm/engine/llm_engine.py:581
+
+
+{'seq_id': 0, 'prompt': '你好', 'block_size': 16, 'data': SequenceData(prompt_token_ids=[9875, 31213], output_token_ids=[], cumulative_logprob=0.0), 'output_logprobs': [], 'output_tokens': [], 'output_text': '', 'logical_token_blocks': [<vllm.block.LogicalTokenBlock object at 0x7f9720142940>], 'status': <SequenceStatus.WAITING: 1>}
+{'seq_id': 1, 'prompt': '今天天气怎么样', 'block_size': 16, 'data': SequenceData(prompt_token_ids=[24807, 6971, 13502], output_token_ids=[], cumulative_logprob=0.0), 'output_logprobs': [], 'output_tokens': [], 'output_text': '', 'logical_token_blocks': [<vllm.block.LogicalTokenBlock object at 0x7f9720142a60>], 'status': <SequenceStatus.WAITING: 1>}

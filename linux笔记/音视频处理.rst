@@ -1,0 +1,158 @@
+音视频处理
+=================
+
+sox使用
+---------------------
+
+查看音频信息
+```````````````
+.. code-block:: shell
+
+    # 获取音频文件的元数据
+    soxi Faded.wav  # 或 sox --i
+    # 获取音频的统计信息
+    sox Faded.wav -n stat
+
+wav转pcm
+```````````````````
+
+.. code-block:: shell
+
+    sox aa.wav --bits 16 --encoding signed-integer --endian little bb.raw
+
+pcm转wav
+```````````````
+.. code-block:: shell
+
+    sox -t raw -c 1 -e signed-integer -b 16 -r 16000 test.pcm test.wav
+    # ulaw pcm 转wav
+    sox -t raw -c 1 -e u-law -r 8000 aaa.pcm aaa.wav
+    # 批量处理
+    cat file.list | awk '{cmd="sox -t raw -c 1 -e signed-integer -b 16 -r 16000 "$0" "$0".wav";print cmd;system(cmd);}'
+
+
+修改wav
+`````````````````
+.. code-block:: shell
+
+    # 语音转化为16k
+    sox disturbence.wav -r 16000 -c 1 -b 16 disturbence_16000_mono_16bit.wav
+
+
+语音切分
+`````````````
+.. code-block:: shell
+
+    # 从音频中切出部分
+    sox input output trim <start> <duration>
+
+语音合并
+`````````````
+.. code-block:: shell
+
+    # 拼接文件
+    sox Half1.wav Half2.wav Full.wav
+
+多声道处理
+`````````````````
+.. code-block:: shell
+
+    # 将左右两个声道的单声道音频合并成一个双声道文件
+    sox -M left.wav right.wav stereo.wav
+    # 对双声道文件中两个声道的均一化处理，将其输出为单声道音频
+    sox original.wav -c 1 mono.wav
+    # 提取双声道音频文件中单个声道的数据并作为单声道音频输出
+    sox stereo.wav left.wav remix 1  #（提取左声道音频）
+    sox stereo.wav right.wav remix 2 #（提取右声道音频）
+    # 将四个声道两两融合，生成一个只包含两个声道的输出文件
+    sox -M stereo1.wav stereo2.wav output.wav remix 1,3 2,4
+
+生成静音
+```````````````
+.. code-block:: shell
+
+    sox -n -r 16000 silence.wav trim 0.0 0.250
+
+音量调节
+```````````
+.. code-block:: shell
+
+    # 将 foo.wav 音频放大 0.5 倍音量后输出至 bar.wav 文件
+    sox -v 0.5 foo.wav bar.wav
+
+修改语速
+`````````````````
+.. code-block:: shell
+
+    # 语速变为原来的1.3倍,会改变pitch：
+    sox input.wav output.wav speed 1.3 
+
+语音拼接
+`````````````````
+.. code-block:: shell
+
+    sox 1.wav 2.wav combined.wav
+
+ffmpeg使用
+---------------------
+
+从视频中提取音频
+```````````````````````````
+.. code-block:: shell
+
+    # 提取音频格式为wav,采样率为48000，通道数为1
+    ffmpeg -i xxx.mp4 -f wav -ar 48000 -ac 1 test.wav
+    # 提取音频格式为mp3
+    ffmpeg -i xxx.mp4 -f mp3 -ar 48000 -ac 1 test.mp3
+
+修改语速
+```````````
+.. code-block:: shell
+
+    # 语速变为原来的0.5倍,不改变pitch
+    ffmpeg -i file.mp3 -filter:a "atempo=0.5" file_0.5.mp3
+
+查看视频信息
+```````````````````
+.. code-block:: shell
+
+    ffmpeg xxx.mp4
+
+视频切分
+```````````````
+.. code-block:: shell
+
+    # -i选项用于指定输入视频文件的路径
+    # -ss选项用于指定从哪个时间点开始切分
+    # -t选项用于指定切分的时长
+    # -c copy选项用于保持视频编解码器不变以避免重新编码
+    ffmpeg -i input_video.mp4 -ss 00:00:10 -t 00:00:20 -c copy output_video.mp4
+
+闪屏处理
+`````````````````
+1. 使用blend过滤器：可以使用blend过滤器来创建平滑的转换效果，从而减少视频中的闪屏。
+   在这个命令中，使用了fade过滤器来创建一个逐渐消失和出现的效果，然后使用blend过滤器来平滑地混合两个效果
+
+.. code-block:: shell
+
+    ffmpeg -i input_video.mp4 -filter_complex "[0:v]fade=out:30:30[va];[0:v]fade=in:30:30[vo];[va][vo]blend=all_expr='A*(if(gte(T,0.5),1,T/0.5))+B*(1-(if(gte(T,0.5),1,T/0.5)))'" -c:v libx264 -preset medium -crf 23 -c:a copy output_video.mp4
+
+2. 使用hstack过滤器：如果视频中有相邻的场景之间存在闪屏，可以使用hstack过滤器来将这些场景平滑地连接起来。
+
+.. code-block:: shell
+
+    ffmpeg -i input_video.mp4 -filter_complex "[0:v]crop=iw/2:ih:0:0[left];[0:v]crop=iw/2:ih:ow:0[right];[left][right]hstack" -c:v libx264 -preset medium -crf 23 -c:a copy output_video.mp4
+
+3. 使用fade过滤器：您可以使用fade过滤器来逐渐淡入淡出视频中的场景，从而减少视频中的闪屏。
+
+.. code-block:: shell
+
+    # 使用fade过滤器来创建一个逐渐淡入和淡出的效果，从时间0开始淡入30帧，从时间120开始淡出30帧。
+    ffmpeg -i input_video.mp4 -vf "fade=in:0:30,fade=out:120:30" -c:v libx264 -preset medium -crf 23 -c:a copy output_video.mp4
+
+4. 使用deinterlace过滤器：如果视频是隔行扫描的，您可以使用deinterlace过滤器来将视频转换为逐行扫描的格式，从而减少闪屏。
+
+.. code-block:: shell
+
+    ffmpeg -i input_video.mp4 -vf "yadif=1" -c:v libx264 -preset medium -crf 23 -c:a copy output_video.mp4
+

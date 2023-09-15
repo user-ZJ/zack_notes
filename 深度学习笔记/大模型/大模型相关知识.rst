@@ -1,0 +1,39 @@
+大模型相关知识
+============================
+
+BPE
+------------------
+bytepair encoding（BPE）算法（Sennrich 等，2015）对数据进行 tokenization，算法实现采用的是 Sentence-Piece（Kudo 和 Richardson，2018）
+
+SwiGLU
+------------------
+用 SwiGLU 激活函数替换 ReLU 非线性，该函数由 Shazeer（2020）提出，目的是提升性能。 但我们使用的维度是 2/3 * 4d
+
+RoPE
+----------------------------
+旋转嵌入（Rotary Embeddings），去掉了绝对位置嵌入（absolute positional embeddings），并在每个网络层中添加旋转位置嵌入（rotary positional embeddings，RoPE）。 RoPE 由 Su 等（2021）提出。
+
+用绝对位置编码表示相对位置
+
+训练式的位置编码作用在token embedding上，而旋转位置编码RoPE作用在每个transformer层的self-attention块，在计算完Q/K之后，旋转位置编码作用在Q/K上，再计算attention score。旋转位置编码通过绝对编码的方式实现了相对位置编码，有良好的外推性。值得一提的是，RoPE不包含可训练参数
+
+
+ALiBi位置编码
+-----------------------------
+ALiBi（Attention with Linear Biases）[12]也是作用在每个transformer层的self-attention块，如下图所示，在计算完attention score后，直接为attention score矩阵加上一个预设好的偏置矩阵。这里的偏置矩阵是预设好的，固定的，不可训练。这个偏置根据q和k的相对距离来惩罚attention score，相对距离越大，惩罚项越大。相当于两个token的距离越远，相互贡献就越小。
+
+
+causal multi-head attention
+-------------------------------------
+因果多头注意力
+
+
+不同大模型的区别
+--------------------
+https://www.cnblogs.com/heyjjjjj/p/17488423.html
+
+
+
+参考：
+
+https://loop.houmin.site/context/state-of-gpt/

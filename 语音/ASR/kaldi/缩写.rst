@@ -1,0 +1,31 @@
+缩写
+============
+
+* am: acoustic model 声学模型
+* Arc:使用fst表示的加权有限状态机中的一个跳转
+* OOV:Out Of Vocabulary words 集外词，在发音词典中找不到的词
+* G2P:Grapheme-to-Phoneme,词转音素，通过算法自动预测单词发音，egs/librispeech/s5/local/g2p/train_g2p.sh
+* WFST:Weighted Finite-State Transducer  加权有限状态转录机
+* WFSA:Weighted Finite-State Acceptor 加权有限状态接收机；和WFST不同，WFSA的每个跳转只有输入标签，而WFST还有输出标签，WFSA可以用输入标签和输出标签相同的WFST表示
+* asl:add-self-loops 添加自跳转
+* rds:remove-disambiguation-symbols 去除消岐符
+* pdf:Probability Distribution Function 发音状态的概率分布函数
+* pdf:Probability Density Function 概率密度函数
+* transition-id:把transition-state,transition-index作为一个二元组并从1开始编号，该编号被称为transition-id
+* MLLT:最大似然线性变换
+* fMLLT:特征最大似然线性回归
+* LDA:Linear Discriminant Analysis 线性判别分析，用于降维
+* PLDA:Probabilistic Linear Discriminant Analysis  把样本特征映射到隐空间的建模方法
+* MMI:maximum mutual information 最大互信息
+* MPE:minimum phone error，最小音素错误
+* 词格:解码图中多条路径集合的快照
+* POV feature:Probability of Voicing(POV) features
+* NCCF:Framel level Normalized Cross Correlation Function,帧级归一化互相关函数
+* UBM:Universal backgroud model 通用背景模型
+* MAP:Maximum a posteriori 最大后验概率
+* JFA:Joint Factor Analysis 联合因子分析
+* VLTN:Vocal Tract Length Normalisation 声道长度归一化。特征归一化方法，用于降低不同说话人之间的声道特性差异
+* GMM:Gaussiam Mixture Mode,高斯混合模型
+* HMM:Hidden Markov Model 隐马尔科夫模型
+* cdf:Cumulative distribution function 累计分布函数
+

@@ -1,0 +1,24 @@
+工具使用
+=====================
+
+
+pdf转html
+-------------------------
+https://convertio.co/zh/download/97e45507502ca81bd3b782d70c3978dcc4c78e/
+
+pdf转html后，可以方便使用Google浏览器翻译，方便论文查看
+
+
+vscode配置格式C++代码格式化
+--------------------------------
+https://blog.csdn.net/shenmingxueIT/article/details/122125191
+
+
+MILVUS:向量搜索
+
+Chroma:向量数据库
+
+https://zhuanlan.zhihu.com/p/628148081
+
+Streamlit:是一个开源应用程序框架，旨在简化为机器学习和数据科学构建 web 应用程序的过程。近年来，它在应用 ML 社区中获得了很大的吸引力
+

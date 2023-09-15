@@ -1,0 +1,140 @@
+分治算法
+================
+
+幂运算
+-------------
+
+:math:`X^N = X^{N/2} * X^{N/2}`  当N为偶数时
+
+:math:`X^N = X^{(N-1)/2} * X^{(N-1)/2} * X`  当N为奇数时
+
+.. code-block:: cpp
+
+    long pow(long x,int n){
+        if(n==0)
+            return 1;
+        if(n==1)
+            return x;
+        if(n%2==0)
+            return pow(x*x, n/2);
+        else
+            return pow(x*x,n/2) * x;
+    }
+
+
+数值的整数次方
+-----------------------
+
+::
+
+    给定一个double类型的浮点数base和int类型的整数exponent。求base的exponent次方。
+    不得使用库函数，同时需要考虑大数问题。
+
+::
+
+    预处理：求pow(a, n)，如果n为负数怎么解决？
+    n为偶数，a^n = a^(n/2)*a^(n/2)
+    n为奇数，a^n = a^((n-1)/2)*a^((n-1)/2)*a
+
+
+.. code-block:: cpp
+
+    double Power(double base, int exponent) {
+        if(base==0.0 && exponent<0) //对0求倒数的情况
+            return 0.0;
+        int absExp = abs(exponent);
+        double res = PowerExponent(base,absExp);
+        if(exponent<0)
+            res = 1.0/res;
+        return res;
+    }
+    double PowerExponent(double base,int absExp){
+        if(absExp==0)
+            return 1.0;
+        if(absExp==1)
+            return base;
+        double res = PowerExponent(base,absExp/2);
+        res *= res;
+        if(absExp & 0x1)  //奇数
+            res *= base;
+        return res;
+    }
+
+
+
+.. _最近点问题:
+
+最近点问题
+-----------------
+输入是平面上的点列P。如果p1=(x1,y1)和p2=(x2,y2)，那么p1和p2间的欧几里得距离为 :math:`\sqrt{(x1-x1)^2+(y1-y2)^2}` 。
+我们要找出一对最近的点。有可能两个点位于同一个位置，这种情况下这两个点就是最近，他们的距离为零。
+
+算法解法：
+
+1. 将平面上的点按照X轴排序存放在表P中
+2. 将平面上的点按照Y轴排序存放在表Q中
+3. 将点集沿着X分成两半： :math:`P_L和P_R`,根据 :math:`P_L和P_R` 依序生成 :math:`Q_L和Q_R`
+4. 最近的两个点要么都在 :math:`P_L` 中，要么都在 :math:`P_R` 中，要么 :math:`P_L和P_R` 中各一个，把这三个距离分别叫做 :math:`d_L,d_R,d_C`
+5. :math:`d_L,d_R` 可以递归计算
+6. 计算 :math:`d_C` 。令 :math:`\delta=min(d_L,d_R)` ，如果 :math:`d_C对\delta` 有所改进，那么 :math:`d_C` 的两个点必然在分割线的 :math:`\delta` 距离之内；把这个区域叫作带(strip)
+7. 扫描表Q，删除x坐标不在带内的所有点，得到带内所有点按y坐标排序的表
+8. 计算带内所有点的距离，且两个点的x,y坐标差值均小于 :math:`\delta`
+
+
+矩阵乘法
+---------------
+计算C=AB,其中A、B和C均为NxN矩阵。
+
+在很长一段时间内矩阵乘法被认为是需要工作量 :math:`O(N^3)` 。
+但是在20世纪60年代末Strassen指出了如何打破 :math:`O(N^3)` 屏障。
+
+Strassen算法的基本思想是把每一个矩阵都分成4块，此时容易证明：
+
+.. math:: 
+
+    C_{1,1} = A_{1,1}B_{1,1} + A_{1,2}B_{2,1}
+
+    C_{1,2} = A_{1,1}B_{1,2} + A_{1,2}B_{2,2}
+
+    C_{2,1} = A_{2,1}B_{1,1} + A_{2,2}B_{2,1}
+
+    C_{2,2} = A_{2,1}B_{1,2} + A_{2,2}B_{2,2}
+
+.. image:: /images/数据结构/分治算法1.jpg
+
+Strassen算法通过仔细的安排计算只使用7次递归调用，这7个乘法是：
+
+.. math:: 
+
+    M_1 = (A_{1,2} - A_{2,2})(B_{2,1} + B_{2,2})
+
+    M_2 = (A_{1,1} + A_{2,2})(B_{1,1} + B_{2,2})
+
+    M_3 = (A_{1,1} - A_{2,1})(B_{1,1} + B_{1,2})
+
+    M_4 = (A_{1,1} + A_{1,2})B_{2,2}
+
+    M_5 = A_{1,1}(B_{1,2} - B_{2,2})
+
+    M_6 = A_{2,2}(B_{2,1} - B_{1,1})
+
+    M_7 = (A_{2,1} + A_{2,2})B_{1,1}
+
+    C_{1,1} = M_1 + M_2 - M_4 + M_6
+
+    C_{1,2} = M_4 + M_5
+
+    C_{2,1} = M_6 + M_7
+
+    C_{2,2} = M_2 - M_3 + M_5 - M_7
+    
+
+Strassen算法的时间复杂度为 :math:`O(N^{log_{2}7})=O(N^{2.81})`
+
+Strassen算法在N不够大时不如矩阵直接乘法，它也不能推广到稀疏矩阵的情况，而且还不容易并行化。
+当用于浮点运算时，它数值上不如经典算法稳定。
+因此，它只有有限的适用性。然而，它却代表着重要的理论上的里程碑。
+
+
+:ref:`重建二叉树`
+----------------------

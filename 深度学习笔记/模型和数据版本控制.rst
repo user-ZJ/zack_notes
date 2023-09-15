@@ -1,0 +1,8 @@
+模型和数据版本控制
+===================================
+
+https://zhuanlan.zhihu.com/p/475053858
+
+Permission denied
+-------------------------
+dvc remote modify --local 远程名 password ssh密码

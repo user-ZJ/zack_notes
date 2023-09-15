@@ -1,0 +1,109 @@
+大模型优化
+========================
+
+* **数据并行** ：将数据分成多个子集，并将每个子集分配给不同的处理器或计算节点进行处理。
+* **模型并行** ：模型分成多个部分，并将每个部分分配给不同的处理器或计算节点进行处理。
+* **张量并行** ：将张量分成多个子张量，并将每个子张量分配给不同的处理器或计算节点进行处理。
+
+数据并行
+-------------------
+数据并行 DP (Data Parallel)将相同的模型权重复制到多个设备，并将一部分数据分配给每个设备同时处理，相当于沿Batch维度对训练过程进行并行化。
+
+本质上是单进程多线程的实现方式，只能实现单机训练不能算是严格意义上的分布式训练。步骤如下：
+
+1. 首先将模型加载到主GPU上，再复制到各个指定从GPU；
+2. 将输入数据按照Batch维度进行拆分，各个GPU独立进行forward计算；
+3. 将结果同步给主GPU完成梯度计算和参数更新，将更新后的参数复制到各个GPU。
+
+主要存在的问题：
+
+1. 负载不均衡，主GPU负载大
+2. 采用 PS 架构通信开销大
+
+DDP (Distribution Data Parallel)
+`````````````````````````````````````````
+采用 AllReduce 架构，在单机和多机上都可以使用。负载分散在每个gpu节点上，通信成本是恒定的，与 GPU 数量无关。
+
+Pytorch DDP 引入bucket在backward的时候进行梯度更新，当一个bucket内部的梯度计算完成后直接开始进行AllReduce操作，而不需要等到backward计算结束，由此提升吞吐量和训练效率。
+
+
+模型并行
+----------------------------------
+将模型在层之间切开，放到不同GPU上运行。
+
+缺点：每个时刻实际只有1个GPU在进行计算，只是增加了显存可以运行更大的模型。另外，还有在设备之间复制数据的开销。
+
+
+
+张量并行(Megatron-LM)
+---------------------------------
+张量并行(Tensor Parallelism)指的是将一个张量（tensor）沿特定维度分成若干部分在不同的设备上分别计算 ，下面以Transformer结构为例介绍这种并行方式。
+
+1D并行
+```````````````
+Megatron-LM 采用一种简单的方法对层内MLP和self-attention进行张量并行。
+
+.. image:: /images/深度学习/张量并行.webp
+
+对于Transformer 中的 MLP 层，上图 (a) 的左侧包含一个 GEMM（通用矩阵乘法）和一个GeLU激活层：Y=GeLU(XA) 。
+
+对于第一个线性层来说，GEMM 并行的一种选择是将权重矩阵A沿其行拆分，并将 X 沿其列输入为： X=[X1,X2], A= :math:`\begin{bmatrix} A1 \\A2 \end{bmatrix}` ，
+这将会得到 Y=GeLU(X1A1+X2A2)，由于GeLU的非线性，导致GeLU(X1A1+X2A2)！=GeLU(X1A1)+GeLU(X2A2),在GeLU层之前还需要一次同步操作。
+
+而另一种选择则是将A沿着列进行拆分，则有 [Y1,Y2]=[GeLU(XA1),GeLU(XA2)] ，这样可以避免多余的同步操作，我们称之为列并行 (column-wise parallel)。
+
+对于第二个线性层 Z=YB,我们采用行并行的方式将B划分为 :math:`\begin{bmatrix} B1 \\B2 \end{bmatrix}`,即 Z=[Y1,Y2] :math:`\begin{bmatrix} B1 \\B2 \end{bmatrix}` ，
+在两个设备上分别得到的 :math:`Y_i B_i` 需要通过一个all-reduce操作将结果汇总为 Z=Y1B1+Y2B2。类似的在反向传播中也需要用到一次all-reduce。
+
+同样的Attention层中的GEMM也采用类似的拆分操作：
+
+Attention(X,Q,K,V)=softmax( :math:`\frac{(XQ)(XK)^T}{\sqrt{d_k}}` )XV ，在正向和反向传播过程中也分别需要一次all-reduce的操作。
+
+
+2D，2.5D以及3D并行
+```````````````````````````````
+`Colossal-AI <https://link.zhihu.com/?target=https%3A//github.com/hpcaitech/ColossalAI>`_ 在 `SUMMA <https://link.zhihu.com/?target=https%3A//onlinelibrary.wiley.com/doi/10.1002/%28SICI%291096-9128%28199704%299%3A4%253C255%3A%3AAID-CPE250%253E3.0.CO%3B2-2>`_ （可扩展的通用矩阵乘法算法）的基础上引入了更多的张量并行形式，具体可参见 
+`2D <https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2104.05343.pdf>`_ ， 
+`2.5D <https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2105.14500.pdf>`_ ， 
+`3D <https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2105.14450.pdf>`_ 。
+
+
+
+GPipe
+----------------------
+流水线并行 (Pipeline Parallelism)是一种通过将模型并行与数据流水线相结合来加速神经网络训练的方法。
+其核心思想是，模型按层分割成若干块，每块都交给一个设备。在前向传递过程中，每个设备将中间的激活传递给下一个阶段。
+在后向传递过程中，每个设备将输入张量的梯度传回给前一个流水线阶段。
+
+.. image:: /images/深度学习/模型并行.png
+
+如上图(b)所示：在简单的模型并行设置中一个模型被垂直分成 4 个分区，由于顺序依赖性，数据一次由一个工作节点处理，导致大量空闲时间（bubble），造成效率非常低下。
+
+在GPipe中，一个小批量（mini-batch）拆分为多个微批量（micro-batch），当每个分区处理完一个微批次后，它可以将输出抛到下一个分区并立即开始下一个微批次的工作，这样分区就可以重叠。但由于每个分区都必须等待前一个分区输入作为第一个微批次来处理，流水线上仍存在bubble时间。
+
+.. image:: /images/深度学习/模型并行1.webp
+
+.. image:: /images/深度学习/模型并行2.png
+
+
+缺点
+`````````````
+1. 模型切分可能导致GPU负载不均衡，有的GPU上计算量大，有的GPU上计算量小，需要根据实际运行情况进行切分
+
+
+Zero
+----------------------------
+ZeRO 的思路很简单，就是普通的数据并行DataParallel (DP)，只不过每个 GPU 只存储模型参数、梯度和优化器状态的一部分，而不是复制完整的模型参数、梯度和优化器状态。
+然后在运行时，当给定层只需要完整层参数时，所有 GPU 都会同步以向彼此提供它们缺失的部分 
+
+
+:ref:`PagedAttention`
+-----------------------------------
+
+参考
+---------------------------
+https://zhuanlan.zhihu.com/p/506052424
+
+https://huggingface.co/transformers/v4.9.2/parallelism.html
+
+

@@ -1,0 +1,115 @@
+指令集级别性能优化
+===============================
+一个轻量级的C++工程中，或者性能不敏感的场景之下，我们总是希望将编译器级别的优化交给编译器自己来完成。
+大部分人能在编译指令中写一个“-O3”已是难能可贵，进一步的优化则更不必提，也罕有人愿意投入时间做这项苦差事。
+
+一方面，对于一些编译器层面性能优化trick，比如根据函数调用频率重排函数，设计对象中不同类型成员的内存对齐等种种手段，
+顶多也就换来百分之零点几的性能提升/内存优化，常常弄了好几天的优化还没有环境波动一下来的多。
+
+另一方面，现代的编译器确实已经足够成熟，在老版本的编译器中，for循环中的++i和i++都具有不同的性能开销差异，
+而今天的编译器早就可以向隐去非必要的细节，并自行对程序进行有效的优化。
+
+也正是基于以上的两个原因，当提到性能提升的时候，往往指的都是算法的重新设计，进一步降低程序运行过程中的时间和空间开销度。
+
+那么不同架构下的C++如何正确的使用SIMD指令，从而帮助软件更好的进行加速。
+
+SISD VS SIMD
+--------------------------
+传统的CPU架构指令都是SISD（Single Instruction Single Data）的，一条指令处理一条数据，
+最为大家熟知的便是“mov a, b”等这类操作，一次对一个数据进行处理，但随着现代计算机中的处理场景愈加复杂，
+SIMD（Single Instruction Multiple Data）指令应运而生，允许CPU通过一条指令处理一组（多条）数据。
+
+在数据密集型的领域，SIMD很好的补齐了CPU的能力，当然在逻辑复杂的场景（判断、跳转、条件）下，SIMD也表现出了一定的局限性。
+
+演进历史
+--------------
+在深度学习以前，计算密集场景主要集中在多媒体、计算机图形学处理等领域，早在1996年英特尔就已经设计了专用的SIMD的指令集MMX，
+一次对一组数据进行操作和处理。随着SIMD大行其道，MMX(Multi Media eXtension)技术很快演进成为第一代SSE(Streaming SIMD Extensions)技术，英特尔也一直主导着SSE1代到SSE4代的技术演进。
+而终于在SSE第5代中，AMD打破了英特尔的垄断地位，率先提出了SSE5，而英特尔随后迅速提出AVX(Advanced Vector Extensions) SIMD指令集，
+这两者再加上ARM架构下的NEON共同组成了目前使用为广泛的SIMD指令集御三家。
+
+如何使用SIMD特性
+------------------------------------
+现代gcc/g++编译器支持默认的SIMD指令优化，也就是即便我们不添加额外的编译宏和编译选项，
+编译器也会自动根据环境中的设置使用SIMD特性，对C++中的vector、for循环等结构进行优化。
+
+对于一些性能敏感的场景，甚至是需要程序员直接使用不同的SIMD的intrinsics进行编程的话，
+通常会使用如下风格的编译指令对其进行控制，以faiss的这段距离计算的代码为例
+
+.. code-block:: c
+
+    #ifdef __SSE__
+    #include <immintrin.h>
+    #endif
+
+    #ifdef __aarch64__
+    #include <arm_neon.h>
+    #endif
+
+    #ifdef __AVX__
+    // AVX implementation
+    #elif defined(__SSE__) // But not AVX
+    // SSE implementation
+    #elif defined(__aarch64__)
+    // NEON implementation
+    #else
+    // CPU implementation
+    #endif
+
+SIMT：Single Data Multiple Threads
+-------------------------------------------------
+和CPU上的SIMD指令相对应的，则是GPU上的SIMT的概念。SIMD要求处理的数据是连续的，而SIMT可以对内存中分散的数据进行操作。
+但是如果内存中的数据分散的很开，SIMT的执行效率亦会大打折扣。
+
+总体来说，SIMT是SIMD一种换汤不换药的表达方式，仅仅列在此处以供参考。
+
+MIMD（Multiple Instruction Multiple Data，多指令流多数据流）
+---------------------------------------------------------------------
+
+
+
+查看CPU指令集
+---------------------
+.. code-block:: cpp
+
+    #include <stdio.h>
+    #include <iostream>
+
+    using namespace std;
+
+    int main() {
+        cout<<"CPU support sse:"<<(bool)__builtin_cpu_supports("sse")<<endl;
+        cout<<"CPU support sse2:"<<(bool)__builtin_cpu_supports("sse2")<<endl;
+        cout<<"CPU support sse3:"<<(bool)__builtin_cpu_supports("sse3")<<endl;
+        cout<<"CPU support ssse3:"<<(bool)__builtin_cpu_supports("ssse3")<<endl;
+        cout<<"CPU support sse4.1:"<<(bool)__builtin_cpu_supports("sse4.1")<<endl;
+        cout<<"CPU support sse4.2:"<<(bool)__builtin_cpu_supports("sse4.2")<<endl;
+        cout<<"CPU support avx:"<<(bool)__builtin_cpu_supports("avx")<<endl;
+        cout<<"CPU support avx2:"<<(bool)__builtin_cpu_supports("avx2")<<endl;
+        cout<<"CPU support avx512f:"<<(bool)__builtin_cpu_supports("avx512f")<<endl;
+        cout<<"CPU support avx512dq:"<<(bool)__builtin_cpu_supports("avx512dq")<<endl;
+        cout<<"CPU support avx512cd:"<<(bool)__builtin_cpu_supports("avx512cd")<<endl;
+        cout<<"CPU support avx512bw:"<<(bool)__builtin_cpu_supports("avx512bw")<<endl;
+        cout<<"CPU support avx512vl:"<<(bool)__builtin_cpu_supports("avx512vl")<<endl;
+        cout<<"CPU support fma:"<<(bool)__builtin_cpu_supports("fma")<<endl;
+        cout<<"CPU support popcnt:"<<(bool)__builtin_cpu_supports("popcnt")<<endl;
+        return 0;
+    }
+
+使用编译器参数判断：
+
+编译参数__AVX512F__可以用来判断当前编译器是否支持AVX-512指令集。当使用支持AVX-512的编译器时，该宏定义会被自动设置为1，否则该宏定义不存在
+
+* __AVX__
+* __AVX2__
+* __SSE3__
+* __POWER9_VECTOR__
+* __AVX512F__
+* __AVX512VBMI__
+* __AVX512VNNI__
+* __FMA__
+* __ARM_NEON
+* __ARM_FEATURE_FMA
+* __F16C__
+* __ARM_FEATURE_FP16_VECTOR_ARITHMETIC
+* __wasm_simd128__
