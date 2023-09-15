@@ -24,7 +24,7 @@ suppress_warnings = ["myst.header"]
 
 source_suffix = {
     '.rst': 'restructuredtext',
-    '.txt': 'markdown',
+    # '.txt': 'markdown',
     '.md': 'markdown',
 }
 

@@ -872,7 +872,73 @@ assert
         return 0;
     }
 
+利用函数重载做性能优化
+---------------------------------
+假定我们的程序需要对“矩阵”这个概念进行建模。矩阵可以被视为一个二维数组，每个元素是一个数值。可以指定其行号与列号获取相应元素的值。
 
+在一个相对复杂的系统中，可能涉及不同类型的矩阵。比如，在某些情况下我们可能需要引入一个数据类型来表示“元素全为零”的矩阵；
+另一种情况是，我们可能需要引入一个额外的数据类型来表示单位矩阵，即除了主对角线上的元素为1，其余元素均为0的矩阵。
+
+如果采用面向对象的方式，我们可以很容易地想到引入一个基类来表示抽象的矩阵类型，在此基础上派生出若干具体的矩阵类来。比如
+
+.. code-block:: cpp
+
+    class AbstractMatrix{
+      public:
+      virtual int Value(int row, int column) = 0;
+    };
+    class Matrix : public AbstractMatrix;
+    class ZeroMatrix : public AbstractMatrix;
+    class UnitMatrix : public AbstractMatrix;
+
+AbstractMatrix定义了表示矩阵的基类，其中的Value接口在传入行号与列号时，返回对应的元素（这里假定它为int型）。
+之后，我们引入了若干个派生类，使用Matrix表示一般意义的矩阵；使用ZeroMatrix表示元素全为零的矩阵；而UnitMatrix则表示单位矩阵。
+
+所有派生自AbstractMatrix的具体矩阵必须实现Value接口。比如，对于ZeroMatrix来说，其Value接口的功能就是返回数值0。
+而对于UnitMatrix来说，如果调用Value接口时传入的行号与列号相同，则返回1；否则返回0。
+
+现在考虑一下，如果我们要实现一个函数，输入两个矩阵并计算二者之和，该怎么写。基于前文所定义的类，矩阵相加函数可以使用如下声明：
+
+.. code-block:: cpp
+
+    Matrix Add(const AbstractMatrix * mat1, const AbstractMatrix* mat2);
+
+每个矩阵都实现了AbstractMatrix所定义的接口，因此我们可以在这个函数中分别遍历两个矩阵中的元素，将对应元素求和并保存在结果Matrix矩阵中返回。
+
+显然，这是一种相对通用的实现，能解决大部分问题，但对于一些特殊的情况，则性能较差。比如可能存在如下的性能优化空间：
+
+* 如果一个Matrix对象与一个ZeroMatrix对象相加，那么直接返回Matrix对象即可；
+* 如果一个Matrix对象与一个UnitMatrix对象相加，那么结果矩阵中的大部分元素与Matrix对象中的元素相同，主对角线上的元素值为Matrix对象中相应位置的元素值加1。
+
+为了在这类特殊情况时提升计算速度，我们可以在Add中引入动态类型转换，来尝试获取参数所对应的实际数据类型：
+
+.. code-block:: cpp
+
+    Matrix Add(const AbstractMatrix * mat1, const AbstractMatrix* mat2){
+      if (auto ptr = dynamic_cast <const ZeroMatrix *>(mat1))
+      // 引入相应的处理
+      else if (/*...*/)
+      // 其他情况
+    }
+
+这种设计有两个问题：首先，大量的if会使得函数变得复杂，难以维护；其次，调用Add时需要对if的结果进行判断——这是一个运行期的行为，
+涉及运行期的计算，引入过多的判断，甚至可能使得函数的运行速度变慢。
+
+此类问题有一个很经典的解决方案：函数重载。比如，我们可以引入如下若干个函数：
+
+.. code-block:: cpp 
+
+    Matrix Add(const AbstractMatrix * mat1, const AbstractMatrix* mat2);
+    Matrix Add(const ZeroMatrix * mat1, const AbstractMatrix *mat2);
+    ZeroMatrix m1;
+    Matrix m2;
+    Add(&m1, &m2); // 调用第二个优化算法
+
+其中的第一个版本对应最一般的情况，而其他的版本则针对一些特殊的情形提供相应的优化。
+
+这种方式很常见，以至于我们可能意识不到这已经是在使用编译期计算了。是的，这是一种典型的编译期计算，
+编译器需要根据用户的调用选择适当的函数来匹配，而这个选择的过程本身就是一种计算过程。
+在这个编译期计算的过程中，我们利用了“参与加法计算的矩阵类型是ZeroMatrix”这样的信息，提升了系统性能。
 
 
 :ref:`类型转换`
