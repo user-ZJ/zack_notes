@@ -102,6 +102,8 @@ ZeRO 的思路很简单，就是普通的数据并行DataParallel (DP)，只不�
 
 参考
 ---------------------------
+https://mp.weixin.qq.com/s/e-3qkkAY3vpAnFlSNviotg
+
 https://zhuanlan.zhihu.com/p/506052424
 
 https://huggingface.co/transformers/v4.9.2/parallelism.html

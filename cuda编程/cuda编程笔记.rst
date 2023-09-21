@@ -1024,7 +1024,7 @@ cudaStreamDestroy()等待指定流中所有之前的任务完成，然后释放�
 
     // 判断是否支持流优先级，compute capability 3.5都支持
     cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
+    cudaError_t error = cudaGetDeviceProperties(&prop, 0);
     if (prop.streamPrioritiesSupported == 0){
         // 不支持
     }
