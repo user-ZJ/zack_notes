@@ -21,6 +21,15 @@ linux安装
   sudo make install
   sudo ldconfig # refresh shared library cache.
 
+  # cmake编译
+  cmake .. -DCMAKE_CXX_STANDARD=14
+  cmake --build .
+
+.. code-block:: shell
+
+  sudo apt install protobuf-compiler
+
+
 
 第一个示例
 ----------------------
@@ -418,6 +427,98 @@ protobuf支持json编码规范，可以更方便的在各个系统中传输数�
   int32 old_field = 6 [deprecated = true];
 
 
+proto和json之间转换
+---------------------------------
+https://stackoverflow.com/questions/34906305/protocol-buffer3-and-json/44291335#44291335
+
+``test-protobuf.proto``
+
+.. code-block:: proto
+
+  syntax = "proto3";
+
+  message SearchRequest {
+    string query = 1;
+    int32 page_number = 2;
+    int32 result_per_page = 3;
+  }
+
+``test-protobuf.cpp``
+
+.. code-block:: cpp
+
+  int main()
+  {
+    std::string json_string;
+    SearchRequest sr, sr2;
+
+    // Populate sr.
+    sr.set_query(std::string("Hello!"));
+    sr.set_page_number(1);
+    sr.set_result_per_page(10);
+
+    // Create a json_string from sr.
+    google::protobuf::util::JsonPrintOptions options;
+    options.add_whitespace = true;
+    options.always_print_primitive_fields = true;
+    options.preserve_proto_field_names = true;
+    MessageToJsonString(sr, &json_string, options);
+
+    // Print json_string.
+    std::cout << json_string << std::endl;
+
+
+    // Parse the json_string into sr2.
+    google::protobuf::util::JsonParseOptions options2;
+    JsonStringToMessage(json_string, &sr2, options2);
+
+    // Print the values of sr2.
+    std::cout
+      << sr2.query() << ", "
+      << sr2.page_number() << ", "
+      << sr2.result_per_page() << std::endl;
+
+    return 0;
+  }
+
+``CMakeLists.txt``
+
+.. code-block:: cmake
+
+  cmake_minimum_required(VERSION 3.8)
+
+  project(test-protobuf)
+
+  find_package(Protobuf REQUIRED)
+
+  # Use static runtime for MSVC
+  if(MSVC)
+    foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+      if(${flag_var} MATCHES "/MD")
+        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      endif(${flag_var} MATCHES "/MD")
+    endforeach(flag_var)
+  endif(MSVC)
+
+  protobuf_generate_cpp(test-protobuf-sources test-protobuf-headers
+    "${CMAKE_CURRENT_LIST_DIR}/test-protobuf.proto"
+  )
+
+  list(APPEND test-protobuf-sources
+    "${CMAKE_CURRENT_LIST_DIR}/test-protobuf.cpp"
+  )
+
+  add_executable(test-protobuf ${test-protobuf-sources} ${test-protobuf-headers})
+  target_include_directories(test-protobuf
+    PUBLIC
+      ${PROTOBUF_INCLUDE_DIRS}
+      ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  target_link_libraries(test-protobuf
+    ${PROTOBUF_LIBRARIES}
+  )
 
 
 参考

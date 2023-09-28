@@ -32,6 +32,6 @@
    libtorch使用
    boost使用笔记
    libssl使用笔记
-   ggml
+   ggml使用笔记
    
 

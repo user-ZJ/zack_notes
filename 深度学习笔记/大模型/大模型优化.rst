@@ -59,6 +59,9 @@ Megatron-LM 采用一种简单的方法对层内MLP和self-attention进行张量
 
 Attention(X,Q,K,V)=softmax( :math:`\frac{(XQ)(XK)^T}{\sqrt{d_k}}` )XV ，在正向和反向传播过程中也分别需要一次all-reduce的操作。
 
+g操作符：在前向传递中进行一次all-reduce通信操作
+f操作符：在后向传递过程中进行一次all-reduce通信操作
+
 
 2D，2.5D以及3D并行
 ```````````````````````````````
