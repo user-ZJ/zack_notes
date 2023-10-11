@@ -1,0 +1,6 @@
+后台开发
+==============
+
+IaaS:Infrastructure as a service  基础设施即服务
+PaaS:platform as a service  平台即服务
+SaaS:software as a service 软件即服务

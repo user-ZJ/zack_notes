@@ -98,6 +98,24 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
     };
 
 
+    // the compute plan that needs to be prepared for ggml_graph_compute()
+    // since https://github.com/ggerganov/ggml/issues/287
+    // 用户自定义的graph执行空间
+    struct ggml_cplan {
+        size_t    work_size; // size of work buffer, calculated by `ggml_graph_plan()`
+        uint8_t * work_data; // work buffer, to be allocated by caller before calling to `ggml_graph_compute()`
+
+        int n_threads;
+
+        // the `n_tasks` of nodes, 1:1 mapping to cgraph nodes
+        int n_tasks[GGML_MAX_NODES];
+
+        // abort ggml_graph_compute when true
+        bool (*abort_callback)(void * data);
+        void * abort_callback_data;
+    };
+
+
 * ``struct ggml_context * ggml_init(struct ggml_init_params params);`` 创建ggml上下文，上下文用于管理ggml内存
 * ``size_t  ggml_used_mem(const struct ggml_context * ctx);``  实际使用内存量
 * ``struct ggml_tensor * ggml_new_tensor(struct ggml_context *ctx,enum ggml_type type,int n_dims,const int64_t *ne);`` 使用ggml_init申请的内存创建Tensor

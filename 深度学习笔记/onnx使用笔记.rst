@@ -262,4 +262,6 @@ python3 -m onnxsim encoder.onnx encoder1.onnx --dynamic-input-shape  --input-sha
     onnx.save(submodel2, "submodel2.onnx")
     onnx.checker.check_model("submodel2.onnx")
 
-
+onnx不支持算子
+--------------------------
+adaptive_avg_pool1d  https://github.com/pytorch/pytorch/issues/61172
