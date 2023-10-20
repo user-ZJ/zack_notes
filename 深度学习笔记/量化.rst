@@ -1,0 +1,100 @@
+量化
+==========
+
+截断量化和非截断量化
+-----------------------------
+.. figure:: /images/深度学习/非截断量化.png
+    :align: center
+    :width: 480
+
+    非截断量化
+
+.. figure:: /images/深度学习/截断量化.png
+    :align: center
+    :width: 480
+
+    截断量化
+
+
+对称量化和非对称量化
+---------------------------------
+* 对称量化：以0为中心轴，量化到[-127,127]
+* 非对称量化：量化范围为[0,255]
+
+.. figure:: /images/深度学习/对称量化.png
+    :align: center
+    :width: 480
+
+    对称量化
+
+.. figure:: /images/深度学习/非对称量化.png
+    :align: center
+    :width: 480
+
+    非对称量化
+
+
+线性量化公式
+-----------------------
+量化： ``Q = R/S + Z``
+
+反量化： ``R = (Q-Z)*S``
+
+.. math:: 
+
+    S = \frac{R_{max}-R_{min}}{Q_{max}-Q_{min}}
+
+    Z = Q_{max} - \frac{R_{max}}{S}
+
+* R:输入的浮点数
+* Q:量化后的定点表示
+* Z:零点(Zero Point)的数值
+* S:缩放因子(scale)的数值
+* :math:`R_{max}` 表示浮点数中的最大值
+* :math:`R_{min}` 表示浮点数中的最小值
+* :math:`Q_{max}` 表示定点数中的最大值(127/255)
+* :math:`Q_{min}` 表示定点数中的最小值(-128/0)
+
+
+ggml量化公式
+------------------------
+.. code-block:: python 
+
+    def quantize_q8_0(tensor: torch.Tensor) -> torch.CharTensor:
+        GGML_QK8_0 = 32
+        # equivalent to ggml_quantize_q8_0 in ggml.c
+        assert tensor.shape[1] % GGML_QK8_0 == 0
+        tensor = tensor.view(-1, GGML_QK8_0)
+        scale = tensor.abs().max(dim=-1, keepdim=True).values / ((1 << 7) - 1)
+        tensor = (tensor / scale).round().clamp(min=-128, max=127).char()
+        # add scale into each block
+        tensor = torch.cat((scale.half().view(torch.int8), tensor), dim=-1)
+        return tensor
+
+
+量化部署
+----------------
+
+* fp32输入，fp32输出
+* fp32输入，int8输出
+* int8输入，fp32输出
+
+.. figure:: /images/深度学习/量化部署.png
+    :align: center
+    :width: 720
+
+    量化部署
+
+反量化
+```````````
+将int32结果反量化为float32
+
+.. image:: /images/深度学习/反量化.png
+    :width: 480
+
+重量化(requant)
+`````````````````````
+将int32结果反量化为float32
+
+.. image:: /images/深度学习/重量化.png
+    :width: 480

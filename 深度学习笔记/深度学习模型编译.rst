@@ -1,5 +1,11 @@
 深度学习模型编译
 ===========================
+
+JIT:Just-In-Time  根据当前硬件即时编译生成最优的机器指令
+AOT:Ahead-Of-Time  在程序运行前编译
+
+
+
 深度学习模型的开发周期，包括训练阶段和部署阶段。
 
 训练阶段，用户需要收集训练数据，定义自己的模型结构，在CPU或者GPU硬件上进行训练，
@@ -76,6 +82,7 @@ Algebraic Simplification
 * constant folding:当算子输入都为常量tensor的时候，可以离线计算出算子的输出，消减掉该算子，提高运行时推理效率。
 
 .. image:: /images/编译优化4.png
+  :width: 3200
 
 Dataflow-level optimizations
 :::::::::::::::::::::::::::::::::::
@@ -118,6 +125,11 @@ Lowering
 JIT是在运行时进行优化，AOT是提前做好优化（生成so或者binary）。
 
 .. image:: /images/编译优化7.png
+
+
+节点级优化：Zero-dim-tensor elimination、Nop elimination
+块级优化：代数简化，常量折叠，算子融合
+数据流级优化：Common sub-expression elimination,DCE
 
 参考
 ----------------

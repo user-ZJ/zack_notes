@@ -80,6 +80,13 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
         char padding[4];
     };
 
+    struct ggml_tensor_extra_gpu {
+        // 1 pointer for each device for split tensors
+        void * data_device[GGML_CUDA_MAX_DEVICES]; 
+        // events for synchronizing multiple GPUs
+        cudaEvent_t events[GGML_CUDA_MAX_DEVICES][MAX_STREAMS]; 
+    };
+
 .. code-block:: cpp
 
     struct ggml_context {
@@ -126,7 +133,7 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 * ``struct ggml_tensor * ggml_new_i32(struct ggml_context * ctx, int32_t value);`` 
 * ``struct ggml_tensor * ggml_new_f32(struct ggml_context * ctx, float value);``
 * ``struct ggml_tensor * ggml_dup_tensor (struct ggml_context * ctx, const struct ggml_tensor * src);``  复制Tensor
-* ``struct ggml_tensor * ggml_view_tensor(struct ggml_context * ctx, struct ggml_tensor * src);`` 
+* ``struct ggml_tensor * ggml_view_tensor(struct ggml_context * ctx, struct ggml_tensor * src);``  重构tensor的维度，相当于reshape
 * ``struct ggml_tensor * ggml_set_zero(struct ggml_tensor * tensor);``  将Tensor赋值为0
 * ``struct ggml_tensor * ggml_set_i32 (struct ggml_tensor * tensor, int32_t value);``
 * ``struct ggml_tensor * ggml_set_f32 (struct ggml_tensor * tensor, float value);``
@@ -137,6 +144,10 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 * ``void *  ggml_get_data(const struct ggml_tensor * tensor);``
 * ``float * ggml_get_data_f32(const struct ggml_tensor * tensor);``
 
+* ``size_t ggml_nbytes(const struct ggml_tensor * tensor)``  获取tensor的字节数
+
+
+* ``struct ggml_tensor * ggml_cont(struct ggml_context * ctx,struct ggml_tensor * a)``  将tensor内存变为连续内存,同contiguous 
 * ``ggml_mul``
 * ``ggml_add``
 * ``ggml_permute``
@@ -146,6 +157,9 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 * ``void ggml_build_forward_expand (struct ggml_cgraph * cgraph, struct ggml_tensor * tensor);`` 将tensor加入图中计算
 * ``ggml_set_param``   将tensor设置为输入变量
 * ``ggml_graph_compute_with_ctx``
+
+* ``void ggml_cuda_transform_tensor(void * data, struct ggml_tensor * tensor)`` 将CPU数据赋值为GPU Tensor
+
 
 
 
