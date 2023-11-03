@@ -1,0 +1,26 @@
+算子融合
+=================
+
+Op线性融合：相邻的Op存在数学上线性可融合关系
+
+* Conv Add融合
+* Conv Mul融合
+* Conv BatchNorm融合
+* Relu Clip融合
+* Reshape融合
+* Conv Scale融合
+* Conv MatMul融合
+* MatMul Add  Add可以融合到bias中
+* MatMul Scale
+* Mean Add  使用LayerNorm代替
+* BN Scale
+* MatMul BN
+
+
+Op激活融合：算子和后续的激活相融合
+
+Act激活操作虽然是连续的，但计算过程是独立的，在推理的时候先计算Conv层：访问Conv输出位置，再计算Relu(即二次访存)。因此造成了访问两遍输出output,增加了访存时间降低了推理效率。
+
+如果计算出Conv结果后立马进行Act激活计算，把最终结果输出，则只需要一次访存，计算量不变，减少访存次数，也能提高推理速度。
+
+* Conv Act(Relu/Relu6)

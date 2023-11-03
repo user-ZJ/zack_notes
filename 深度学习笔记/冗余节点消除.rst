@@ -1,0 +1,26 @@
+冗余节点消除
+============================
+
+Op本身没有意义：有些Op本身不参与计算，在推理节点直接去掉对结果没有影响。
+
+* 去掉Seq2Out,Identity,NoOp,Print,Assert,StopGradient,Split等冗余算子
+* Cast转换前后数据类型相等
+* Concat只有一个输入Tensor
+
+
+Op参数没有意义：有些Op本身是有意义的，但是设置成某些参数后就变成了无意义的Op 
+
+* Tensor Cast :转化数据排布格式时，单参数src等于dst时，该Op无意义，可以删除
+* Slice elimination:Slice Op的index_start等于0且index_end等于-1时该算子无意义
+* Expand elimination:Expand输出shape等于输入shape时，该Op无意义
+* pooling elimination:Pooling Op窗口大小为1x1时无意义，可以删除
+
+
+Op位置无意义：一些Op在计算图中特殊位置会变得多余无意义
+
+Op前后语义相反：前后两个相邻Op进行操作时，语义相反的两个Op都可以删除
+
+公共子图消除：
+
+
+

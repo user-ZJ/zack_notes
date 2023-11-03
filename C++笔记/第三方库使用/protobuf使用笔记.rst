@@ -447,6 +447,8 @@ https://stackoverflow.com/questions/34906305/protocol-buffer3-and-json/44291335#
 
 .. code-block:: cpp
 
+  #include <google/protobuf/util/json_util.h>
+
   int main()
   {
     std::string json_string;
@@ -462,7 +464,10 @@ https://stackoverflow.com/questions/34906305/protocol-buffer3-and-json/44291335#
     options.add_whitespace = true;
     options.always_print_primitive_fields = true;
     options.preserve_proto_field_names = true;
-    MessageToJsonString(sr, &json_string, options);
+    auto statu = MessageToJsonString(sr, &json_string, options);
+    if(not statu.ok()){
+       LOG(ERROR) << statu.ToString();
+    }
 
     // Print json_string.
     std::cout << json_string << std::endl;
@@ -470,6 +475,7 @@ https://stackoverflow.com/questions/34906305/protocol-buffer3-and-json/44291335#
 
     // Parse the json_string into sr2.
     google::protobuf::util::JsonParseOptions options2;
+    options2.ignore_unknown_fields = true;
     JsonStringToMessage(json_string, &sr2, options2);
 
     // Print the values of sr2.
@@ -488,7 +494,7 @@ https://stackoverflow.com/questions/34906305/protocol-buffer3-and-json/44291335#
   cmake_minimum_required(VERSION 3.8)
 
   project(test-protobuf)
-
+  # set(CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/grpc)
   find_package(Protobuf REQUIRED)
 
   # Use static runtime for MSVC

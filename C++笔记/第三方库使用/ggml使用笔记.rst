@@ -7,35 +7,9 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 
 示例
 -------------
-.. code-block:: cpp
+.. literalinclude:: /C++笔记/code/ggml/ggml_example.cpp
+    :language: cpp
 
-    //f(x) = a*x^2 + b
-    struct ggml_init_params params = {
-        .mem_size   = 16*1024*1024,
-        .mem_buffer = NULL,
-    };
-
-    // memory allocation happens here
-    struct ggml_context * ctx = ggml_init(params);
-
-    struct ggml_tensor * x = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
-
-    ggml_set_param(ctx, x); // x is an input variable
-
-    struct ggml_tensor * a  = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
-    struct ggml_tensor * b  = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
-    struct ggml_tensor * x2 = ggml_mul(ctx, x, x);
-    struct ggml_tensor * f  = ggml_add(ctx, ggml_mul(ctx, a, x2), b);
-
-    struct ggml_cgraph gf = ggml_build_forward(f);
-    // set the input variable and parameter values
-    ggml_set_f32(x, 2.0f);
-    ggml_set_f32(a, 3.0f);
-    ggml_set_f32(b, 4.0f);
-    // 实际计算
-    ggml_graph_compute_with_ctx(ctx, &gf, n_threads);
-
-    printf("f = %f\n", ggml_get_f32_1d(f, 0));
 
 
 数据结构
@@ -148,9 +122,10 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 
 
 * ``struct ggml_tensor * ggml_cont(struct ggml_context * ctx,struct ggml_tensor * a)``  将tensor内存变为连续内存,同contiguous 
-* ``ggml_mul``
-* ``ggml_add``
-* ``ggml_permute``
+* ``struct ggml_tensor * ggml_mul(struct ggml_context * ctx,struct ggml_tensor  * a,struct ggml_tensor  * b);``  点乘
+* ``struct ggml_tensor * ggml_mul_mat(struct ggml_context * ctx,struct ggml_tensor  * a,struct ggml_tensor  * b);`` 矩阵乘，A: K x N；B: K x M（内部会做一次转置）；result: N x M
+* ``struct ggml_tensor * ggml_add(struct ggml_context * ctx,struct ggml_tensor  * a,struct ggml_tensor  * b);``
+* ``ggml_permute``  维度换位
 * ``ggml_conv_1d``
 
 * ``struct ggml_cgraph ggml_build_forward (struct ggml_tensor * tensor);``  创建一个计算图来计算Tensor
@@ -162,8 +137,10 @@ ggml是一个Tensor运算库，可以用来实现线性回归，支持向量机�
 
 
 
-
-
+量化
+-----------------
+q4_0:将数据量化到[0,15]。min=-abs(x),max=abs(x)
+q4_1:将数据量化到[0,15]。最大值和最小值为实际的最大值和最小值
 
 
 参考
