@@ -320,6 +320,27 @@ map类型不能是repeated
   map<string, Project> projects = 3;
 
 
+ListValue
+------------------------
+ListValue 可以定义二维数组
+
+.. code-block:: protobuf
+
+  import "google/protobuf/struct.proto";
+  message doublematrix {
+    uint32 cols = 1;
+    uint32 rows = 2;
+    repeated google.protobuf.listvalue values = 3;
+  }
+
+::
+
+  {
+    "cols": 2,
+    "rows": 2,
+    "values": [[1, 2], [3, 4]]
+  }
+
 定义rpc服务
 -----------------
 

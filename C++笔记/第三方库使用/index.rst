@@ -11,6 +11,7 @@
    googletest笔记
    POCO使用笔记
    libsox使用
+   flatbuffers使用笔记
    protobuf使用笔记
    grpc笔记
    onnxruntime

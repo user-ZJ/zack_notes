@@ -183,10 +183,10 @@ path[i][j]表示dp[i][j]的前驱节点。则可以按照以下步骤来记录�
 
     | dp[m][n]  从[0,0]到达[m-1][n-1]位置的路径总数
     | 初始值：
-    | for(i=0;i<m;i++) dp[i][0] = 1;
-    | for(j=0;j<n;j++) dp[0][j] = 1;
+    | for(i=0; i<m; i++) dp[i][0] = 1;
+    | for(j=0; j<n; j++) dp[0][j] = 1;
     | 递推公式
-    | dp[i][j] == dp[i-1][j] + dp[i][j-1]
+    | dp[i][j] = dp[i-1][j] + dp[i][j-1]
 
 .. literalinclude:: code/求路径.cpp
     :language: cpp
