@@ -1359,3 +1359,9 @@ OpenACC提供了一组预定义的指令，开发人员可以将其插入到现�
 
 OpenACC支持多种编程语言，包括C、C++和Fortran，并且可以与其他并行编程模型（如OpenMP）结合使用。
 它被广泛应用于科学计算领域，特别是在需要处理大规模数据集和复杂算法的应用程序中，以提高计算性能和效率。
+
+
+
+
+
+https://github.com/HeKun-NVIDIA/CUDA-Programming-Guide-in-Chinese
