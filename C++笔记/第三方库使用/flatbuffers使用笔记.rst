@@ -17,6 +17,8 @@ flatbuffers使用笔记
 .. code-block:: shell
 
     ./flatc --cpp monster.fbs
+    # --gen-object-api可以生成更方便的基于对象的API，将 FlatBuffer 解包并打包到对象和标准 STL 容器中，从而方便构建、访问和更改。
+    # 但效率低一些
 
 
 schema
@@ -24,10 +26,11 @@ schema
 
 .. code-block:: 
 
-    namespace MyGame;
-    attribute "priority";
-    enum Color : byte { Red = 1, Green, Blue }
-    union Any { Monster, Weapon, Pickup }
+    namespace MyGame.Sample;
+
+    enum Color:byte { Red = 0, Green, Blue = 2 }
+
+    union Equipment { Weapon } // Optionally add more tables.
 
     struct Vec3 {
         x:float;
@@ -40,10 +43,17 @@ schema
         mana:short = 150;
         hp:short = 100;
         name:string;
-        friendly:bool = false (deprecated, priority: 1);
+        friendly:bool = false (deprecated);
         inventory:[ubyte];
         color:Color = Blue;
-        test:Any;
+        weapons:[Weapon];
+        equipped:Equipment;
+        path:[Vec3];
+    }
+
+    table Weapon {
+        name:string;
+        damage:short;
     }
 
     root_type Monster;
@@ -119,6 +129,11 @@ Unions
 * original_order（在表上）：由于表中的元素不需要以任何特定顺序存储，因此通常通过按大小排序来优化空间。这个属性可以阻止这种情况发生。通常不应该有任何理由使用此标志。
 * ``native_*`` 添加了几个属性来支持“基于C++ 对象的 API”。所有这些属性都以术语 ``native_`` 为前缀。
 
+
+读写二进制数据
+------------------------
+.. literalinclude:: ../code/flatbuffers_binary.cpp
+    :language: cpp
 
 JSON解析
 -------------------
@@ -197,3 +212,5 @@ https://github.com/google/flatbuffers/blob/master/samples/sample_text.cpp
 
 
 https://stackoverflow.com/questions/48215929/can-i-serialize-dserialize-flatbuffers-to-from-json
+
+https://flatbuffers.dev/flatbuffers_guide_use_cpp.html
