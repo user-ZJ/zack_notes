@@ -103,6 +103,12 @@ ZeRO 的思路很简单，就是普通的数据并行DataParallel (DP)，只不�
 :ref:`PagedAttention`
 -----------------------------------
 
+
+Rolling Batch
+------------------------
+https://aws.amazon.com/cn/blogs/china/accelerate-sagemaker-llm-model-inference-performance-using-rolling-batch/
+
+
 参考
 ---------------------------
 https://mp.weixin.qq.com/s/e-3qkkAY3vpAnFlSNviotg

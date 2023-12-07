@@ -337,17 +337,20 @@ https://www.cnblogs.com/scandy-yuan/archive/2013/01/08/2851324.html
        list<int>::iterator it;
        for(it = a1.begin();it!=a1.end();it++){
            cout << *it << "\t";
+           // 10      10      10      10      10
        }
        cout<<endl;
-       a1.assign(a.begin(),a.end());   //assign(beg,end)      将[beg,end)区间的元素拷贝赋值给链表c。
+       a1.assign(a.begin(),a.end());   //assign(beg,end) 将[beg,end)区间的元素拷贝赋值给链表c。
        for(it = a1.begin();it!=a1.end();it++){
            cout << *it << "\t";
+           // 1       2       3       4       5
        }
        cout<<endl;
-       a1.insert(a1.begin(),0);  //insert(pos,num)      在pos位置插入元素num。
+       a1.insert(a1.begin(),0);  //insert(pos,num) 在pos位置插入元素num。返回插入元素对应的迭代器
        a1.insert(a1.begin(),2,88);  //insert(pos,n,num)      在pos位置插入n个元素num。
        int arr[5] = {11,22,33,44,55};
        a1.insert(a1.begin(),arr,arr+3);  //insert(pos,beg,end)      在pos位置插入区间为[beg,end)的元素。
+       a1.insert(a1.begin(),a.begin(),a.end());
        a1.push_front(9);  //push_front(num)      在开始位置增加一个元素。
        a1.push_back(99);  //push_back(num)      在末尾增加一个元素。
        return 0;
@@ -386,6 +389,7 @@ https://www.cnblogs.com/scandy-yuan/archive/2013/01/08/2851324.html
        list<int> a1{1,2,3,4,5};
        list<int>::iterator it;
        it = next(a1.begin(),3);
+       iter = std::prev(it); //获取前一个迭代器
        cout<<*it<<endl;
        a1.clear();
        return 0;
