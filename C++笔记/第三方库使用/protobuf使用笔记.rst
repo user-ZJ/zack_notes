@@ -341,6 +341,9 @@ ListValue 可以定义二维数组
     "values": [[1, 2], [3, 4]]
   }
 
+
+ListValue序列化为json会存在性能问题：https://groups.google.com/g/protobuf/c/23Slq4AX7oE
+
 定义rpc服务
 -----------------
 
