@@ -242,6 +242,8 @@ RapidJSON 是只有头文件的 C++ 库。只需把 `include/rapidjson` 目录�
 ----------------------------------
 https://github.com/USCiLab/cereal
 
+https://github.com/Enhex/Cereal-Optional-NVP
+
 
 参考
 ----------
