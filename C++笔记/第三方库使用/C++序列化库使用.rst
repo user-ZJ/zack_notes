@@ -8,5 +8,8 @@ cereal
 ---------------------
 https://github.com/USCiLab/cereal
 
-https://github.com/Enhex/Cereal-Optional-NVP
+https://github.com/LowCostCustoms/cereal-optional
+
+.. literalinclude:: ../code/cereal_example.cpp
+    :language: cpp
 

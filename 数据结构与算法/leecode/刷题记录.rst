@@ -548,7 +548,7 @@
             } else if(low_units.count(c)){
                 low_unit = low_units[c];
                 if(i==0)
-                    num = low_unit;  //处理以十开头的，如十二
+                    num = low_unit*high_unit;  //处理以十开头的，如十二
                 else
                     num = 0;
             }else if(chinese_num.count(c)){

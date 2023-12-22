@@ -159,3 +159,31 @@ script命令用于将一个shell会话过程中产生的全部输入和输出保
     # ​-I {}​选项指定占位符 ​{}​，表示要替换为从输入中读取的每个命令
 
 
+ssh别名登录
+-------------------------
+``.ssh/config``
+
+.. code-block:: shell
+
+    Host tbj
+    HostName xxx.xxx.xxx.xxx
+    User root
+    Port 5122
+
+    Host tgt2
+    HostName xxx.xxx.xxx.xxx
+    User root
+    ProxyJump tbj #跳板机
+
+    Host tgt2
+    HostName xxx.xxx.xxx.xxx
+    User root
+
+``免密登录``
+
+.. code-block:: shell
+
+    ssh-copy-id root@xxx.xxx.xxx.xxx
+
+
+
