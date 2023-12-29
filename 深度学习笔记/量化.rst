@@ -1,6 +1,8 @@
 量化
 ==========
 
+**PTQ** ：post-training quantization
+
 截断量化和非截断量化
 -----------------------------
 .. figure:: /images/深度学习/非截断量化.png
@@ -104,5 +106,49 @@ k-quant
 ------------------------
 
 
+
+round-to-nearest(RTN)
+-----------------------------------
+
+
 smoothquant
 ---------------------
+https://github.com/mit-han-lab/smoothquant
+
+
+
+Layer-Wise Quantization
+----------------------------------------
+
+
+Optimal Brain Quantization(OBQ)
+------------------------------------
+
+GPTQ
+-----------------
+https://github.com/IST-DASLab/gptq
+
+1. 第一个将千亿参数的模型量化到3-4bit;之前的后训练量化方法只能保证千亿参数的8bit量化的精度
+2. 效率比较高，可以在几个小时内将具有千亿参数模型压缩到3bit/4bit;精度不会有明显损失
+3. 实现了定制GPU内核，OPT-175B在A100 GPU上量化后性能提升3.25倍，A6000 GPU上量化后性能提升4.5倍
+4. 没有量化激活层
+
+
+
+
+AWQ(Activation-aware Weight Quantization)
+----------------------------------------------------
+https://github.com/mit-han-lab/llm-awq
+
+1. 4090上3.7倍速度提升
+
+
+SqueezeLLM
+------------------------
+https://github.com/SqueezeAILab/SqueezeLLM
+
+1. Sensitivity-based Non-Uniform Quantization 基于灵敏度的非均匀量化。
+2. Dense-and-Sparse Quantization 密集-稀疏量化。
+   将权重分解为密集和稀疏两部分。稀疏部分使用高效的稀疏存储方法全精度保存离群值，并利用高效的稀疏内核将推理开销降至最低。
+   这使得密集部分的范围更加紧凑，并有助于量化。通过只提取0.45%的权重作为稀疏成分，将llama7b在C4上的可思量度从7.75降至7.58
+3. 2.3倍速度提升
