@@ -124,6 +124,21 @@ Layer-Wise Quantization
 Optimal Brain Quantization(OBQ)
 ------------------------------------
 
+
+ZeroQuant
+-----------------------
+
+https://arxiv.org/pdf/2206.01861.pdf
+
+1. 权重和激活都会量化
+2. LKD( layer-by-layer knowledge distillation)算法，不依赖原始的训练数据
+3. 高度优化的量化系统后端支持，以消除quantization/dequantization的开销
+4. ZeroQuant可以以无成本的方式将权重和激活的精度降低到INT8
+5. 速度提升5.19x/4.16x
+6. LKD算法将全连接层量化为INT4;Attention层和激活层量化为INT8;相比fp16内存占用减少3倍
+7. 将quant和激活层进行了融合，将dequant层和GEMM层进行了融合
+8. 只在bert和gpt上验证过效果
+
 GPTQ
 -----------------
 https://github.com/IST-DASLab/gptq
@@ -133,6 +148,9 @@ https://github.com/IST-DASLab/gptq
 3. 实现了定制GPU内核，OPT-175B在A100 GPU上量化后性能提升3.25倍，A6000 GPU上量化后性能提升4.5倍
 4. 没有量化激活层
 
+
+ZeroQuant-V2
+----------------------------------
 
 
 
