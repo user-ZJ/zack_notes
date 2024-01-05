@@ -8,6 +8,33 @@
 #include <fstream>
 #include <optional>
 
+
+#define MESSAGE_DESERIALIZE                                                    \
+  int deserialize(const std::string &str) {                                   \
+    try {                                                                      \
+      std::stringstream ss(str);                                               \
+      cereal::JSONInputArchive archive(ss);                                    \
+      serialize(archive);                                                      \
+      return 0;                                                                \
+    } catch (std::exception & e) {                                             \
+      LOG(ERROR) << e.what();                                                  \
+      return 1;                                                                \
+    }                                                                          \
+  }
+
+#define MESSAGE_SERIALIZE                                                      \
+  std::string serialize() {                                                    \
+    std::stringstream ss;                                                      \
+    try {                                                                      \
+      cereal::JSONOutputArchive archive(                                       \
+          ss, cereal::JSONOutputArchive::Options::NoIndent());                 \
+      serialize(archive);                                                      \
+    } catch (std::exception & e) {                                             \
+      LOG(ERROR) << e.what();                                                  \
+    }                                                                          \
+    return ss.str();                                                           \
+  }
+
 struct MyData {
   int x, y, z;
   std::string word = "你好";
