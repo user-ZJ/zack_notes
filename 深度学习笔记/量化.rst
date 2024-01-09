@@ -109,7 +109,10 @@ k-quant
 
 round-to-nearest(RTN)
 -----------------------------------
+RTN means the naive round-to-nearest baseline (with fine-grained quantization as well), 
+and FP16/INT8 is used as the no-accuracy-loss baseline.
 
+出自ZeroQuant-V2论文
 
 smoothquant
 ---------------------
@@ -151,8 +154,15 @@ https://github.com/IST-DASLab/gptq
 
 ZeroQuant-V2
 ----------------------------------
+1. 详细分析了量化敏感度
 
+  a. 激活量化相比权重量化对模型准确率影响更大。对激活进行量化后，小模型相对大模型的准确率下降更少
+  b. 不同类型的模型对INT8激活量化表现不一样，BLOOM-176B准确率下降较少，OPT-30B到60B准确率下降很多
 
+2. 提出了Low Rank Compensation (LoRC),在量化误差矩阵中应用低秩矩阵分解；
+   低秩矩阵分解和fine-grained quantization (FGQ)配合使用，能够在不增加模型大小的情况下有效恢复模型精度
+
+3. 模型越大，权重量化影响越小，激活量化影响越大
 
 AWQ(Activation-aware Weight Quantization)
 ----------------------------------------------------

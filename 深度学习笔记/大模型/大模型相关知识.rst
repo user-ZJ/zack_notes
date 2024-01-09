@@ -22,6 +22,8 @@ bytepair encoding（BPE）算法（Sennrich 等，2015）对数据进行 tokeniz
 .. image:: /images/深度学习/tokenizer.png
     :width: 3600px
 
+https://zhuanlan.zhihu.com/p/191648421
+
 
 位置编码
 -----------------
