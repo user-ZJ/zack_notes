@@ -43,7 +43,6 @@
 反量化： ``R = (Q-Z)*S``
 
 .. math:: 
-
     S = \frac{R_{max}-R_{min}}{Q_{max}-Q_{min}}
 
     Z = Q_{max} - \frac{R_{max}}{S}
@@ -122,34 +121,118 @@ https://github.com/mit-han-lab/smoothquant
 
 Layer-Wise Quantization
 ----------------------------------------
+https://arxiv.org/pdf/2004.10568.pdf
 
 
 Optimal Brain Quantization(OBQ)
 ------------------------------------
+https://arxiv.org/abs/2208.11580
+
+
 
 
 ZeroQuant
 -----------------------
 
+MHSA:multi-head self-attention
+
 https://arxiv.org/pdf/2206.01861.pdf
 
-1. 权重和激活都会量化
-2. LKD( layer-by-layer knowledge distillation)算法，不依赖原始的训练数据
-3. 高度优化的量化系统后端支持，以消除quantization/dequantization的开销
-4. ZeroQuant可以以无成本的方式将权重和激活的精度降低到INT8
-5. 速度提升5.19x/4.16x
-6. LKD算法将全连接层量化为INT4;Attention层和激活层量化为INT8;相比fp16内存占用减少3倍
-7. 将quant和激活层进行了融合，将dequant层和GEMM层进行了融合
-8. 只在bert和gpt上验证过效果
+ZeroQuant提出了一种高效、便宜的Transformer模型训练后量化方法用来压缩大模型。
+主要贡献有：
+
+1. 提出了一种细粒度的硬件友好的量化方案，支持同时量化权重和激活。权重量化使用group-wise量化，激活量化使用token-wise量化，
+   两种量化方式都可以降低量化误差，同时使用硬件加速
+2. 提出一种新颖的经济实惠的逐层支持蒸馏(LKD( layer-by-layer knowledge distillation))算法,且不依赖于原始的训练数据
+3. 一个高效的量化系统后端，支持移除quantization/dequantization的开销
+
+主要展示的结果有：
+
+1. ZeroQuant可以以无成本的方式将BERT和gpt-3风格模型的权重和激活精度降低到INT8，并且精度影响最小，
+   与FP16推理相比，BERTbase/GPT3-350M在A100 GPUs上的速度提高了5.19倍/4.16倍
+2. ZeroQuant使用LKD经济实惠地量化了全连接模块的权重到INT4，以及注意力模块中的激活和权重到INT8，与FP16模型相比，内存占用减少了3倍;
+3. ZeroQuant可以直接应用于两个最大的开源语言模型，GPT-J6B和GPT-NeoX20B。其中INT8模型实现了与FP16模型相似的精度，但实现了高达5.2倍的效率
+
+
+背景知识
+```````````````````
+`对称量化和非对称量化`_
+
+PTQ的一种常用策略是将训练数据输入网络，并使用运行均值来校准比例因子。
+
+.. figure:: /images/深度学习/zero-quant-2.png
+    :width: 320px
+
+    The results of GPT3-350M with PTQ
+
+1. 将激活量化为INT8(W16A8)导致主要的精度损失
+
+
+.. figure:: /images/深度学习/zero-quant-1.png
+    :width: 320px
+
+    GPT3-350M token/row-wise Range
+
+Dynamic Activation Range
+::::::::::::::::::::::::::::::::::::::
+为了调查为什么INT8激活导致主要的精度损失，作者绘制了GPT3-350M不同transformer层的激活的token-wise(即每个token的隐藏状态)数值变化范围。
+可以看到不同的token有不同的激活范围。
+
+查看最后一层激活，不同token生成的最大值范围变化为8-35，而INT8取值范围为-128到127，如果使用固定的scale对激活进行量化会导致精度损失较多
+
+Different Ranges of Neurons in Weight Matrices
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+同样绘制了注意力权重的row-wise的最大值，不同行之间有10倍的差异，
+如果使用INT4精度仅使用16个数据表示10倍的差异，会导致数值波动小的行只能使用2到3个数值进行表示
+
+解决方案/本论文提出的方法
+``````````````````````````````````````````````````````````
+
+Group-wise Quantization for Weights
+:::::::::::::::::::::::::::::::::::::::::::
+将权重矩阵进行分组，每个分组进行单独量化。
+
+Token-wise Quantization for Activations
+:::::::::::::::::::::::::::::::::::::::::::
+动态计算每个token的最小/最大范围，以减少激活的量化误差。
+
+Layer-by-layer Knowledge Distillation with Affordable Cost
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+LKD算法假设要量化的模型有N个transformer层， :math:`L_1` 到 :math:`L_N` ,输入数据是(X,Y),可以是训练数据也可以不是。
+LKD使用原始模型对transformer层进行逐层量化。
+
+1. 假设 :math:`L_k` 是即将要量化的层，量化版本为 :math:`\hat{L_k}`
+2. 使用原始模型 :math:`L_{k-1}` 层的输出作为 :math:`L_k` 和 :math:`\hat{L_k}` 输入
+3. 使用MSE作为:math:`L_k` 和 :math:`\hat{L_k}` 输出误差，当然也可以使用KL散度进行评估
+4. 每次优化一个transformer层，只需要少量的GPU内存即可完成量化
+
+Fusing Token-wise Activation Quantization
+:::::::::::::::::::::::::::::::::::::::::::::::
+.. image:: /images/深度学习/zero-quant-3.png
+
+实现了融合算子的kernel,消除了quantization/dequantization的开销
+
 
 GPTQ
 -----------------
 https://github.com/IST-DASLab/gptq
 
-1. 第一个将千亿参数的模型量化到3-4bit;之前的后训练量化方法只能保证千亿参数的8bit量化的精度
-2. 效率比较高，可以在几个小时内将具有千亿参数模型压缩到3bit/4bit;精度不会有明显损失
-3. 实现了定制GPU内核，OPT-175B在A100 GPU上量化后性能提升3.25倍，A6000 GPU上量化后性能提升4.5倍
-4. 没有量化激活层
+gptq之前量化方法在没有很大精度损失的情况下只能量化Millions级别的参数模型，gptq将量化参数扩展到billion级别
+
+.. image:: /images/深度学习/gptq-1.png
+
+论文贡献：
+
+1. 提出了一种新的训练后量化方法，称为GPTQ，它足够高效，可以在最多几个小时内对具有数千亿参数的模型执行，
+   并且足够精确，可以将这些模型压缩到每个参数3bit或4bit，而不会显着损失精度.(注：ZeroQuant量化1.3B模型需要3小时，GPU量化130B模型需要4小时)
+2. 实现了定制GPU内核，OPT-175B在A100 GPU上量化后性能提升3.25倍，A6000 GPU上量化后性能提升4.5倍
+3. 第一个证明具有数千亿参数的极其精确的语言模型可以量化到3-4位/组件；之前的后量化方法只能保持8位的准确性
+4. 在局限性方面，由于主流架构上缺乏对混合精度操作数(例如FP16 x INT4)的硬件支持，我们的方法目前无法为实际乘法提供加速。
+   此外，我们目前的结果不包括激活量化，因为它们在我们的目标场景中不是一个重要的瓶颈;但是，可以使用正交技术来支持这一点
+
+
+
+
 
 
 ZeroQuant-V2
@@ -164,19 +247,75 @@ ZeroQuant-V2
 
 3. 模型越大，权重量化影响越小，激活量化影响越大
 
-AWQ(Activation-aware Weight Quantization)
+AWQ
 ----------------------------------------------------
 https://github.com/mit-han-lab/llm-awq
 
-1. 4090上3.7倍速度提升
+https://github.com/casper-hansen/AutoAWQ
+
+AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration
+
+1. 实际观测到权重并不是同等重要，保护1%的显著权重，能够有效降低量化误差
+2. 通过观察激活而不是权重来搜索保护显著权重的最佳跨通道缩放;更大的激活幅度相对应的权重通道更显著，因为它们处理更重要的特征。
+   (确定权重重要性的一种广泛使用的方法是看它的大小或L2-norm。但是我们发现跳过具有大范数的权重通道并没有显著提高量化性能，与随机选择通道性能差不多。)
+3. AWQ不依赖于任何反向传播或重构，因此它可以很好地保持llm在不同域和模态上的泛化能力，而不会过度拟合到校准集
+4. 实现了一个为边缘llm量身定制的高效灵活的推理框架，在桌面和移动gpu上提供超过3倍的加速
+5. 4090上3.7倍速度提升
+6. AWQ实现的kernel主要是对linear层进行加速
+7. AWQ只证明了再分组量化(group 128)上的效果
+
+最接近的工作是GPTQ，它使用二阶信息进行误差补偿。它可能会在重建过程中过度拟合校准集，使学习到的特征在分布外域上发生扭曲
+
+.. image:: /images/深度学习/AWQ-1.png
+    :width: 3200px
+
+为了避免混合精度实现的硬件效率低下，我们分析了权值量化带来的误差，并推导出放大显著信道可以减小它们的相对量化误差。
+我们设计了一种按通道缩放的方法来自动搜索在权重量化下最小化量化误差的最优缩放。
+
+为了确定不同通道的缩放系数，定义优化目标为：
+
+.. image:: /images/深度学习/AWQ-2.png
+    :width: 3200px
+
+其中：
+
+* W是原始的fp16权重
+* X是输入特征
+* s是不同通道的缩放因子
+
+对于 :math:`s^{-1}.X` 将 :math:`s^{-1}` 融合到前一个算子当中 
+
+为了使过程更加稳定，定义了最优比例的搜索空间。
+
+.. image:: /images/深度学习/AWQ-3.png
+    :width: 3200px
+
+* s只和激活的重要性 :math:`s_X` 相关
+* 使用单个超参数α来平衡显著和非显著通道
+* 可以通过在[0,1]区间内的快速网格搜索找到最佳α(0表示我们不缩放;1对应最激进的缩放)。
+* 通过最小化MSE误差进一步应用权值裁剪
+
+.. image:: /images/深度学习/AWQ-4.png
+    :width: 3200px
 
 
 SqueezeLLM
 ------------------------
 https://github.com/SqueezeAILab/SqueezeLLM
 
-1. Sensitivity-based Non-Uniform Quantization 基于灵敏度的非均匀量化。
+1. 基于灵敏度的非均匀量化。基于二阶信息搜索最优位精度分配
 2. Dense-and-Sparse Quantization 密集-稀疏量化。
    将权重分解为密集和稀疏两部分。稀疏部分使用高效的稀疏存储方法全精度保存离群值，并利用高效的稀疏内核将推理开销降至最低。
    这使得密集部分的范围更加紧凑，并有助于量化。通过只提取0.45%的权重作为稀疏成分，将llama7b在C4上的可思量度从7.75降至7.58
 3. 2.3倍速度提升
+
+
+
+其他论文
+---------------------
+* Understanding and overcoming the challenges of efficient transformer quantization
+* Q-BERT: Hessian based ultra low precision quantization of bert
+* Gobo: Quantizing attentionbased nlp models for low latency and energy efficient inference
+* Understanding and overcoming the challenges of efficient transformer quantization
+* Optimal Brain Compression: A framework for accurate post-training quantization and pruning.
+* The case for 4-bit precision: k-bit inference scaling laws

@@ -1206,6 +1206,13 @@ oprofile
 5. 流量是那个远程系统发送的？使用iptraf或etherape
 6. 哪个应用程序套接字要为流量负责？使用strace -e trace=file跟踪应用程序所有IO系统调用。通过查看/proc/pid/fd/中的文件是从文件描述符到实际文件或套接字的符号链接
 
+
+
+火焰图
+-----------------------
+https://github.com/brendangregg/FlameGraph
+
+
 参考
 -------------------------
 
