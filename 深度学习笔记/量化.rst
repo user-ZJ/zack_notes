@@ -128,6 +128,19 @@ Optimal Brain Quantization(OBQ)
 ------------------------------------
 https://arxiv.org/abs/2208.11580
 
+Optimal Brain Surgeon(OBS):使用权重剪枝方式对模型进行压缩
+
+Optimal Brain Compressor (OBC)
+
+https://github.com/IST-DASLab/OBC
+
+贡献
+`````````
+1. 在本文中，我们提供了一个通过剪枝或量化进行压缩的数学框架，这在具有挑战性的训练后压缩设置中导致了最先进的精度与压缩之间的权衡。
+   我们的框架从分层压缩问题开始，首先根据校准数据上的层行为拆分为分层子问题定义为修剪或量化的全局压缩任务。
+   具体来说，给定一个由权重 :math:`W_l` 定义的层l，以及层输入 :math:`X_l`，我们的目标是找到压缩版本的权重 :math:`\hat{W_l}`，
+   通过测量原始层和压缩层输出之间的平方误差，从而最小化相对于未压缩层的输出差异
+
 
 
 
@@ -303,12 +316,36 @@ SqueezeLLM
 ------------------------
 https://github.com/SqueezeAILab/SqueezeLLM
 
-1. 基于灵敏度的非均匀量化。基于二阶信息搜索最优位精度分配
-2. Dense-and-Sparse Quantization 密集-稀疏量化。
+1. 我们提出了一种新颖的解决方案，即使在精度低至3bit的情况下也能实现无损压缩和改进量化性能
+2. 我们首先展示了性能建模结果，表明内存，而不是计算，是LLM推理与生成任务的主要瓶颈
+3. 在此基础上，我们引入了SqueezeLLM，这是一个训练后量化框架，具有新颖的基于灵敏度的非均匀量化和稠密稀疏分解。
+   这些技术可以在不影响模型性能的情况下实现超低位精度和更小的模型尺寸和更快的推理
+4. 基于灵敏度的非均匀量化。基于二阶信息搜索最优位精度分配
+   均匀量化在LLM推理中是一个次佳的优化，因为，第一，llm中的权重分布呈现出明显的非均匀模式；
+   第二，先前工作中的推理计算没有受益于均匀量化，因为算法是在FP16精度下进行的，而不是在降低精度下进行的。
+5. Dense-and-Sparse Quantization 密集-稀疏量化。
    将权重分解为密集和稀疏两部分。稀疏部分使用高效的稀疏存储方法全精度保存离群值，并利用高效的稀疏内核将推理开销降至最低。
    这使得密集部分的范围更加紧凑，并有助于量化。通过只提取0.45%的权重作为稀疏成分，将llama7b在C4上的可思量度从7.75降至7.58
-3. 2.3倍速度提升
+6. 2.3倍速度提升
+7. 只量化权重部分，激活仍然使用float进行计算
 
+内存墙
+`````````````
+**算术强度** ，即计算操作与内存操作的比率，是用于评估计算限制或内存带宽限制的典型指标。
+对于内存受限的问题，可以通过减少内存流量而不是计算来实现加速，因为硬件中的计算单元在等待从内存接收数据时往往利用率不足。
+
+大模型相对于深度学习模型有更小的计算强度，这是因为它几乎完全由矩阵-向量运算组成。
+这限制了数据重用，因为每个权重负载只能处理单个令牌的单个向量，并且不能跨多个向量平摊不同的令牌。
+
+.. image:: /images/深度学习/SqueezeLLM1.png
+    :width: 3200px
+
+我们可以清楚地看到，延迟随着我们降低比特精度而线性减少，这表明主要的瓶颈是内存，而不是计算
+
+
+SENSITIVITY-BASED NON-UNIFORM QUANTIZATION
+```````````````````````````````````````````````````````
+使用k-means方法将权重进行聚类，比如3bit则聚成8个类
 
 
 其他论文
@@ -319,3 +356,4 @@ https://github.com/SqueezeAILab/SqueezeLLM
 * Understanding and overcoming the challenges of efficient transformer quantization
 * Optimal Brain Compression: A framework for accurate post-training quantization and pruning.
 * The case for 4-bit precision: k-bit inference scaling laws
+* A survey of quantization methods for efficient neural network inference
