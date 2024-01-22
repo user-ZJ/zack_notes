@@ -11,3 +11,5 @@
    大模型优化
    llama模型结构
    mlc-llm环境配置
+   vllm推理框架笔记
+   chatglm系列模型

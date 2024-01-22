@@ -81,6 +81,11 @@ Multi-query Attention 与 Grouped-query Attention
 https://www.cnblogs.com/heyjjjjj/p/17488423.html
 
 
+gguf数据格式
+------------------------
+https://github.com/ggerganov/ggml/blob/master/docs/gguf.md
+
+
 
 参考
 -------------

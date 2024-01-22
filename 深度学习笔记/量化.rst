@@ -348,6 +348,10 @@ SENSITIVITY-BASED NON-UNIFORM QUANTIZATION
 使用k-means方法将权重进行聚类，比如3bit则聚成8个类
 
 
+k-quants
+----------------------------
+https://github.com/ggerganov/llama.cpp/pull/1684
+
 其他论文
 ---------------------
 * Understanding and overcoming the challenges of efficient transformer quantization
