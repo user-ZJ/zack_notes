@@ -228,6 +228,8 @@ Fusing Token-wise Activation Quantization
 
 GPTQ
 -----------------
+https://arxiv.org/pdf/2210.17323.pdf
+
 https://github.com/IST-DASLab/gptq
 
 gptq之前量化方法在没有很大精度损失的情况下只能量化Millions级别的参数模型，gptq将量化参数扩展到billion级别
@@ -262,6 +264,8 @@ ZeroQuant-V2
 
 AWQ
 ----------------------------------------------------
+https://arxiv.org/pdf/2306.00978.pdf
+
 https://github.com/mit-han-lab/llm-awq
 
 https://github.com/casper-hansen/AutoAWQ
@@ -314,6 +318,8 @@ AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration
 
 SqueezeLLM
 ------------------------
+https://arxiv.org/pdf/2306.07629.pdf
+
 https://github.com/SqueezeAILab/SqueezeLLM
 
 1. 我们提出了一种新颖的解决方案，即使在精度低至3bit的情况下也能实现无损压缩和改进量化性能
