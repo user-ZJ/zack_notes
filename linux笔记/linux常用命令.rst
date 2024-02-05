@@ -21,6 +21,11 @@ windows文件格式为unix
 
     sed -i 's/oo/kk/g' ./test*
 
+批量替换文件中内容
+.. code-block:: shell
+
+    sed -i s/AAA/BBB/g `grep AAA * -nrl`
+
 
 换行替换为空格
 ----------------------------
