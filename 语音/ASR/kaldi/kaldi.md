@@ -5,7 +5,7 @@
 ```cpp
 //数据读入类型
 enum RspecifierType  {
-  kNoRspecifier,  错误
+  kNoRspecifier,  //错误
   kArchiveRspecifier, ark
   kScriptRspecifier  scp  
 };
@@ -92,12 +92,12 @@ RandomAccessTableReaderMapped  utt2spk+scp
 
 
 ```cpp
-写入数据类型
+//写入数据类型
 enum WspecifierType  {
-  kNoWspecifier,错误
-  kArchiveWspecifier, ark 
-  kScriptWspecifier,  scp
-  kBothWspecifier  ark,scp
+  kNoWspecifier,//错误
+  kArchiveWspecifier, //ark 
+  kScriptWspecifier,  //scp
+  kBothWspecifier  //ark,scp
 };
 
 ```
