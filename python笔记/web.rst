@@ -11,8 +11,9 @@ https://fastapi.tiangolo.com/zh/
 
     from typing import Union
     import uvicorn
-    from fastapi import FastAPI,WebSocket
+    from fastapi import FastAPI,WebSocket,Request
     from fastapi.responses import HTMLResponse
+    from pydantic import BaseModel
 
     app = FastAPI()
 
@@ -50,6 +51,10 @@ https://fastapi.tiangolo.com/zh/
     </html>
     """
 
+    class Item(BaseModel):
+        name: str
+        description: str
+
 
     @app.get("/")
     async def get():
@@ -59,6 +64,15 @@ https://fastapi.tiangolo.com/zh/
     @app.get("/items/{item_id}")
     def read_item(item_id: int, q: Union[str, None] = None):
         return {"item_id": item_id, "q": q}
+    
+    @app.post("/get_post_data")
+    async def get_post_data(request: Request):
+        body = await request.body()
+        return {"data_received": body.decode()}
+
+    @app.post("/items/")
+    def create_item(item: Item):
+        return {"message": "Item created"}
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):

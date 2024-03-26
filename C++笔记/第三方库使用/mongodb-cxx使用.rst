@@ -145,3 +145,11 @@ https://mongocxx.org/mongocxx-v3/tutorial/
 
     target_link_libraries(mongodb_test PRIVATE mongo::mongocxx_shared)
 
+
+连接池
+----------------
+.. code-block:: cpp
+
+    mongocxx::instance instance{};
+    mongocxx::pool pool{mongocxx::uri{}};
+    mongocxx::client c = pool.acquire();
