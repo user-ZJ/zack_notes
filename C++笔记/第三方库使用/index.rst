@@ -35,5 +35,6 @@
    libssl使用笔记
    ggml使用笔记
    C++序列化库使用
+   mongodb-cxx使用
    
 
