@@ -262,6 +262,96 @@ python3 -m onnxsim encoder.onnx encoder1.onnx --dynamic-input-shape  --input-sha
     onnx.save(submodel2, "submodel2.onnx")
     onnx.checker.check_model("submodel2.onnx")
 
+方式3：
+
+.. code-block:: python
+
+    import onnx
+    from onnx import shape_inference,helper,numpy_helper,TensorProto
+    from onnx import NodeProto, GraphProto, TensorProto
+    import onnxruntime as ort
+    import numpy as np
+    from onnxsim import simplify
+    import copy
+
+    # onnx裁剪思路
+    # 1. 在指定节点添加输入/输出
+    # 2. 删除中间某个节点，将不需要的图和主图断开连接
+    # 3. 使用onnx-simplifier清理不需要的图（删除不需要的输出节点即可删除链路上的所有节点）
+    # 4. 删除不需要的输入和输出节点
+
+    model = onnx.load('/home/zack/Documents/models/nlp/paimon_sentiment.onnx')
+    model, check = simplify(model)
+    assert check, "Simplified ONNX model could not be validated"
+    graph = model.graph
+
+
+    sub_nodes1 = graph.node
+    sub_nodes2 = graph.node
+
+    submodel1 = copy.deepcopy(model)
+    submodel2 = copy.deepcopy(model)
+
+    # model1
+    dynamic_dim = onnx.TensorProto.UNDEFINED
+    value_info = onnx.ValueInfoProto()
+    # 注意，添加输出时，名称必须是某个节点的输出名称，可以在simplifier之后再修改名称
+    value_info.name = '/bert/embeddings/Add_1_output_0'  # 张量的名称
+    value_info.type.tensor_type.elem_type = onnx.TensorProto.FLOAT  # 元素类型，这里是浮点数
+    value_info.type.tensor_type.shape.dim.extend([
+        onnx.TensorShapeProto.Dimension(dim_value=dynamic_dim,dim_param='batch_size'),
+        onnx.TensorShapeProto.Dimension(dim_value=dynamic_dim,dim_param='sequence_length'),
+        onnx.TensorShapeProto.Dimension(dim_value=768)   # 第三维度是静态的，值为1
+    ])
+    del submodel1.graph.output[:]
+    submodel1.graph.output.extend([value_info])
+    print(submodel1.graph.output)
+    del submodel1.graph.node[:]
+    submodel1.graph.node.extend(sub_nodes1)
+    submodel1, check = simplify(submodel1)
+    assert check, "Simplified ONNX model could not be validated"
+    #修改输出节点名称
+    for node in submodel1.graph.node:
+        if node.name == '/bert/embeddings/Add_1':
+            print(node)
+            node.output[0] = "feature"
+            print(node)
+    submodel1.graph.output[0].name = "feature"
+    #删除多余的输入节点
+    print(submodel1.graph.input)
+    submodel1.graph.input.pop(1)
+    onnx.save(submodel1, "embedding.onnx")
+    onnx.checker.check_model("embedding.onnx")
+
+    feature = onnx.ValueInfoProto()
+    feature.name = 'feature'  # 张量的名称
+    feature.type.tensor_type.elem_type = onnx.TensorProto.FLOAT  # 元素类型，这里是浮点数
+    feature.type.tensor_type.shape.dim.extend([
+        onnx.TensorShapeProto.Dimension(dim_value=dynamic_dim,dim_param='batch_size'), #动态维度
+        onnx.TensorShapeProto.Dimension(dim_value=dynamic_dim,dim_param='sequence_length'),
+        onnx.TensorShapeProto.Dimension(dim_value=768)   # 第三维度是静态的，值为768
+    ])
+    submodel2.graph.input.append(feature)
+
+    for node in sub_nodes2:
+        if node.name == '/bert/embeddings/LayerNorm/ReduceMean':
+            node.input[0] = 'feature'
+            print(node)
+        if node.name == '/bert/embeddings/LayerNorm/Sub':
+            node.input[0] = 'feature'
+            print(node)
+    for node in sub_nodes2:
+        if node.name == '/bert/embeddings/Add_1':
+            sub_nodes2.remove(node)
+
+    del submodel2.graph.node[:]
+    submodel2.graph.node.extend(sub_nodes2)
+    submodel2, check = simplify(submodel2)
+    assert check, "Simplified ONNX model could not be validated"
+    submodel2.graph.input.pop(0)
+    onnx.save(submodel2, "sentiment.onnx")
+    onnx.checker.check_model("sentiment.onnx")
+
 onnx不支持算子
 --------------------------
 adaptive_avg_pool1d  https://github.com/pytorch/pytorch/issues/61172
