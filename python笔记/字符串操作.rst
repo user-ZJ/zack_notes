@@ -1,68 +1,76 @@
-# python字符串操作
+python字符串操作
+===========================
 1. 字符替换  
 
-	```python
+.. code-block:: python
+
 	ttt.replace('.json', '.txt')
-	```
+	
 	
 2. 删除括号及括号内的内容 
 
-		```python
+.. code-block:: python
+
 	ss = "hello(xxx)" 
 	print(re.sub('\\(.*?\\)','',ss))
-	```
+
 	
 3. 字符串和list互转
 
-```python
-# list转字符串
-''.join(list)
-# 字符串转list
-print list('12345')
-print list(map(int, '12345'))
-str2 = "123 sjhid dhi"
-list2 = str2.split()
-str3 = "www.google.com"
-list3 = str3.split(".") 
-```
+.. code-block:: python
+
+    # list转字符串
+    ''.join(list)
+    # 字符串转list
+    print list('12345')
+    print list(map(int, '12345'))
+    str2 = "123 sjhid dhi"
+    list2 = str2.split()
+    str3 = "www.google.com"
+    list3 = str3.split(".") 
 
 
 4. 删除换行符
 
-    ```python
+.. code-block:: python
+
     f.readline().strip('\n')  #strip() 方法用于移除字符串头尾指定的字符（默认为空格）
-    ```
+    
 
 5. 所有标点符号  
 
-    ```python
+.. code-block:: python
+
     strip(string.punctuation)
-    ```
+    
 
 6. 删除字符串中所有数字
-```python
-#方法1：translate方法使用字典，将字符串中的字符转换为其他字符
-s = 'abc123def456ghi789zero0'
-remove_digits = str.maketrans('', '', string.digits)
-res = s.translate(remove_digits)
 
-#方法2
-filter(lambda x: x.isalpha(), "a1a2a3s3d4f5fg6h")
-        	
-#方法3		
-for i in range(10):
-	a.replace(str(i),'')
-```
+.. code-block:: python
+
+    #方法1：translate方法使用字典，将字符串中的字符转换为其他字符
+    s = 'abc123def456ghi789zero0'
+    remove_digits = str.maketrans('', '', string.digits)
+    res = s.translate(remove_digits)
+
+    #方法2
+    filter(lambda x: x.isalpha(), "a1a2a3s3d4f5fg6h")
+                
+    #方法3		
+    for i in range(10):
+        a.replace(str(i),'')
+
 7. 字符串转数字
 
-    ```python
+.. code-block:: python
+
     int(str)
     float(str)
-    ```
 
 8. 格式化字符串
 
-    ```python
+.. code-block:: python
+
     #str.format()
     #	基本语法是通过 {} 和 : 来代替以前的 %
     #	"{} {}".format("hello", "world")    # 不设置指定位置，按默认顺序
@@ -91,31 +99,36 @@ for i in range(10):
     name = 'Eric'
     print(f'Hello, my name is {name}')
     #'Hello, my name is Eric'
-    ```
+    
 
 9. 将list以指定分隔符转化为字符串
 
-```python
-ttt = ["1","2","3"]
-print(",".join(ttt))
-#out：1,2,3  
-```
+.. code-block:: python
+
+    ttt = ["1","2","3"]
+    print(",".join(ttt))
+    #out：1,2,3  
+
 
 10. print中文字符报错
 
-     'ascii' codec can't encode characters in position 97-98: ordinal not in range(128)
-    在print一个中文字符串时候有时候也会报ascii的编码错误，这时候需要注意查看一下标准输出的默认字符编码是否不是utf-8 (一般所有的python环境标准输出的字符编码都是默认的utf-8，我在使用docker基于ubuntu16版本装的python35遇到这种问题了)  
-    通过  sys.stdout.encoding  查看标准输出的默认字符编码
-    修改默认编码：
+'ascii' codec can't encode characters in position 97-98: ordinal not in range(128)
+在print一个中文字符串时候有时候也会报ascii的编码错误，这时候需要注意查看一下标准输出的默认字符编码是否不是utf-8 (一般所有的python环境标准输出的字符编码都是默认的utf-8，我在使用docker基于ubuntu16版本装的python35遇到这种问题了)  
+通过  sys.stdout.encoding  查看标准输出的默认字符编码
+修改默认编码：
+
+.. code-block:: python
+
     import sys
     import codecs
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 11. 判断字符串以XX开头或结尾
 
-    ```python
+.. code-block:: python
+
     value.endswith('.sh')
     value.startswith('00')
-    ```
+    
 
     

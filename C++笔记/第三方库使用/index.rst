@@ -8,6 +8,7 @@
 
    rapidjson使用
    glog使用笔记
+   gflags使用笔记
    googletest笔记
    POCO使用笔记
    libsox使用

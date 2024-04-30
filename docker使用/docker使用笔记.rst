@@ -310,6 +310,20 @@ docker build -f /path/to/a/Dockerfile .
 docker build -t ubuntu:v1 -f /path/to/a/Dockerfile --no-cache .
 
 
+docker-compose
+------------------------------
+对docker容器进行编排
+
+安装
+```````````
+https://docs.docker.com/compose/install/standalone/
+
+.. code-block:: shell
+
+	curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+	sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+
 FAQ
 -------------
 删除镜像失败

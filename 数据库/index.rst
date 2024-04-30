@@ -8,6 +8,7 @@
 
    MySQL
    Redis
+   milvus
 
    
    
