@@ -202,6 +202,19 @@ head请求，返回200说明索引存在，否则返回404
             "key1":"123"
         }'
 
+    # 新增一个字段，是某两个字段的拼接
+    curl --location --request POST 'localhost:9200/test/_update_by_query' \
+        --header 'Content-Type: application/json' \
+        --data '{
+            "query": {
+                "match_all": {}
+            },
+            "script": {
+                "source": "ctx._source.new_field = ctx._source.field1 + '\n' + ctx._source.field2",
+                "lang": "painless" // 使用Painless脚本语言
+            }
+        }'
+
 
 删除文档
 `````````````````````
@@ -213,3 +226,17 @@ head请求，返回200说明索引存在，否则返回404
     curl --location --request POST 'localhost:9200/test/_delete_by_query' \
         --header 'Content-Type: application/json' \
         --data '{"query": {"match_all": {}}}'
+
+
+从一个数据库同步数据到另一个数据库
+------------------------------------------------
+工具：elasticdump
+
+https://github.com/elasticsearch-dump/elasticsearch-dump
+
+.. code-block:: shell
+
+    docker run --rm -ti elasticdump/elasticsearch-dump \
+        --input=http://production.es.com:9200/my_index \
+        --output=http://staging.es.com:9200/my_index \
+        --type=data

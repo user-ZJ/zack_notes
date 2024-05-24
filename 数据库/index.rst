@@ -8,6 +8,7 @@
 
    MySQL
    Redis
+   elasticsearch使用
    milvus
 
    
