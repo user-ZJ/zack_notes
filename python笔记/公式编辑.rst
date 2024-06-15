@@ -1,0 +1,11 @@
+公式编辑
+============================
+
+mathml转latex
+-------------------------------
+.. code-block:: cpp
+
+    from py_asciimath.translator.translator import MathML2Tex
+    mathml2tex = MathML2Tex()
+    pattern = r"<math.*?>[\s\S]+?</math>"
+    data = re.sub(pattern, lambda x: mathml2tex.translate(x.group(), network=False, from_file=False,).replace('\\$', ''), data)
