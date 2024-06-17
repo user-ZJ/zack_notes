@@ -3,7 +3,7 @@
 
 mathml转latex
 -------------------------------
-.. code-block:: cpp
+.. code-block:: python
 
     from py_asciimath.translator.translator import MathML2Tex
     mathml2tex = MathML2Tex()
