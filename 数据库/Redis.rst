@@ -1,6 +1,8 @@
 Redis
 ================
 
+客户端：Another Redis Desktop Manager
+
 Redis概述
 -----------------------
 * Redis是一个开源的key-value存储系统。
