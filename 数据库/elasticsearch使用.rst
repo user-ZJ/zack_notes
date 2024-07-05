@@ -99,11 +99,15 @@ head请求，返回200说明索引存在，否则返回404
             "query":{
                 "bool":{
                     "must":[
-                        "match":{
-                            "key1":"value1"
+                        {
+                            "match":{
+                                "key1":"value1"
+                            }
                         },
-                        "match":{
-                            "key2":"value2"
+                        {
+                            "match":{
+                                "key2":"value2"
+                            }
                         }
                     ]
                 }

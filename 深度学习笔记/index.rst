@@ -27,3 +27,4 @@
    算子前移
    模型导出/structbert模型导出
    模型导出/bert模型导出
+   模型导出/macbert模型导出

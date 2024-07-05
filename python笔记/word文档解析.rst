@@ -1,6 +1,8 @@
 word文档解析
 ========================
 
+https://github.com/kmrambo/Python-docx-Reading-paragraphs-tables-and-images-in-document-order-/blob/master/main_code/Para_table_image_extraction.py
+
 https://python-docx.readthedocs.io/en/latest/
 
 .. code-block:: python

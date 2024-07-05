@@ -1795,6 +1795,10 @@ STL中的排序算法
     sort(v.begin(),v.end()); // 升序排列
     sort(v.begin(),v.end(),greater<int>()); // 降序排列
     sort(v.begin(),v.begin()+(v.end()-v.begin())/2); // 对前半部分升序排列
+    std::sort(mMyClassVector.begin(), mMyClassVector.end(), [](const MyClass &a, const MyClass &b)
+    { 
+        return a.mProperty > b.mProperty; 
+    });
 
 sort算法不能保证相等的项保持它们原始的序列(如果这很重要的话，可以使用stable_sort来替代sort)。
 
