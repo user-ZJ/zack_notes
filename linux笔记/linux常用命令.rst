@@ -35,6 +35,14 @@ windows文件格式为unix
     # ​:a;N;$!ba;​用于将整个文件读入到模式空间中，并将多行合并为一行。​s/\n/ /g​则用于将模式空间中的所有换行符 ​\n​替换成空格
     sed -i ':a;N;$!ba;s/\n/ /g' input.txt
 
+
+zip/unzip
+----------------------
+.. code-block:: shell
+
+    # 解压到指定目录
+    unzip -d /temp test.zip
+
 pigz 多线程压缩
 ---------------------
 
