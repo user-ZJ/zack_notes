@@ -19,7 +19,7 @@ grpc 笔记
     # 安装依赖库
     sudo apt install -y build-essential autoconf libtool pkg-config
     # 下载源码
-    git clone --recursive -b v1.49.x https://github.com/grpc/grpc.git
+    git clone --recursive -b v1.49.1 https://githubfast.com/grpc/grpc.git
     # 编译
     cd grpc
     mkdir -p cmake/build

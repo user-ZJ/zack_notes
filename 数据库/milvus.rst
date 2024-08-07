@@ -7,6 +7,14 @@ https://www.bilibili.com/video/BV11a4y1c7SW/?spm_id_from=333.999.0.0&vd_source=1
 
 客户端：attu
 
+安装
+-------------------
+.. code-block:: shell
+
+    curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
+    bash standalone_embed.sh start
+
+
 
 文本类型配置倒排索引
 ---------------------------------
@@ -134,3 +142,20 @@ https://milvus.io/docs/index-scalar-fields.md
     # client.list_indexes(
     #     collection_name="test_scalar_index"  # Specify the collection name
     # )
+
+
+C++客户端
+----------------------------
+https://github.com/milvus-io/milvus-sdk-cpp
+
+安装
+`````````
+.. code-block:: shell
+
+    git clone https://github.com/milvus-io/milvus-sdk-cpp.git
+    cd milvus-sdk-cpp
+    bash scripts/install_deps.sh
+    mkdir build
+    cd build
+    cmake ..
+    make

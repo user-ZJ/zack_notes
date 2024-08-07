@@ -70,7 +70,23 @@ head请求，返回200说明索引存在，否则返回404
             "key2":"value2"
         }'
     # 指定id,在url后面添加id. 
-    # curl --location --request POST 'localhost:9200/test/1001'  ...
+    curl --location --request POST 'localhost:9200/test/_doc/1001' \
+        --header 'Content-Type: application/json' \
+        --data '{
+            "key1":"value1",
+            "key2":"value2"
+        }'
+    # 批量插入
+    curl --location --request POST 'localhost:9200/_bulk' \
+        --header 'Content-Type: application/json' \
+        --data '{ "index" : { "_index" : "test", "_id" : "1" } }
+            { "field1" : "value1" }
+            { "delete" : { "_index" : "test", "_id" : "2" } }
+            { "create" : { "_index" : "test", "_id" : "3" } }
+            { "field1" : "value3" }
+            { "update" : {"_id" : "1", "_index" : "test"} }
+            { "doc" : {"field2" : "value2"} }'
+
 
 查询文档
 `````````````

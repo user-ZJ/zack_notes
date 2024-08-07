@@ -59,6 +59,15 @@ https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/
 
 运行 `conda clean -i` 清除索引缓存，保证用的是镜像站提供的索引
 
+### 配置conda清华源
+
+	conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+	conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+	conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/linux-64/
+	conda config --set show_channel_urls yes
+	conda install pytorch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 pytorch-cuda=12.1 -c nvidia
+
+
 ## 卸载所有安装包
 
 	pip freeze | grep -v "^-e" | xargs pip uninstall -y

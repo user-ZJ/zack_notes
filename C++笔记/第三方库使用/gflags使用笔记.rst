@@ -7,6 +7,7 @@ gflags使用笔记
 
     mkdir build 
     cd build
-    cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" ..
+    # cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" ..
+    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
     make 
     sudo make install
