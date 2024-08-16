@@ -200,6 +200,10 @@ head请求，返回200说明索引存在，否则返回404
     # match 标识分词匹配
     # match_phrase表示完全匹配
 
+    # 统计数量
+    curl -X GET "localhost:9200/your_index_name/_count"
+    curl -X GET "localhost:9200/_count"
+
 
 
 

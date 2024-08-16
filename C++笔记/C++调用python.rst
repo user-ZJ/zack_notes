@@ -1,6 +1,12 @@
 C++调用python
 =====================================
 
+pybind11
+----------------------------
+
+https://pybind11.readthedocs.io/en/stable/advanced/embedding.html
+
+
 使用python提供给C/C++的API
 ----------------------------------------
 主流方法将python程序编程文本形式的动态链接库，在c/c++程序中调用其中定义的函数。
