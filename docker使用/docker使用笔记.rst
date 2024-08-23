@@ -244,6 +244,13 @@ docker常用命令
 	docker cp mycontainer:/opt/testnew/file.txt /opt/test/
 
 
+覆盖ENTRYPOINT
+`````````````````````
+.. code-block:: shell
+
+	docker run -it --entrypoint /bin/bash [docker_image]
+
+
 Dockerfile
 ---------------------
 Dockerfile 是用来定义 **镜像**   
