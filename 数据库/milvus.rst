@@ -68,6 +68,9 @@ https://milvus.io/docs/index-scalar-fields.md
         db_name=dbname
     )
 
+    # 查看数据库中collection
+    print(client.list_collections())
+
     # 构造字段
     schema = MilvusClient.create_schema(
         auto_id=False,
@@ -91,8 +94,12 @@ https://milvus.io/docs/index-scalar-fields.md
 
     print(res)
 
+    # 查看所有表
+    print(client.list_collections())
+
     # 创建索引
-    index_params = client.prepare_index_params() # Prepare an empty IndexParams object, without having to specify any index parameters
+    # Prepare an empty IndexParams object, without having to specify any index parameters
+    index_params = client.prepare_index_params() 
     index_params.add_index(
         field_name="my_id",
         index_type="STL_SORT"
@@ -122,11 +129,10 @@ https://milvus.io/docs/index-scalar-fields.md
 
     print(res)
 
+    # 查看所有索引
     res = client.list_collections()
 
     print(res)
-
-
 
     client.load_collection(
         collection_name="customized_setup_2"
@@ -138,10 +144,122 @@ https://milvus.io/docs/index-scalar-fields.md
 
     print(res)
 
-
     # client.list_indexes(
     #     collection_name="test_scalar_index"  # Specify the collection name
     # )
+
+数据库管理
+---------------------------
+.. code-block:: python
+
+    from pymilvus import connections, db
+    conn = connections.connect(host="127.0.0.1", port=19530)
+    # 创建数据库
+    database = db.create_database("my_database")
+    # 切换数据库
+    db.using_database("my_database")
+    # 连接数据库
+    conn = connections.connect(
+        host="127.0.0.1",
+        port="19530",
+        db_name="my_database"
+    )
+    # 查看数据库列表
+    db.list_database()
+    # 删除数据库
+    db.drop_database("my_database")
+
+字段管理
+--------------------------
+.. code-block:: python 
+
+    from pymilvus import FieldSchema
+    id_field = FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, description="primary id")
+    age_field = FieldSchema(name="age", dtype=DataType.INT64, description="age")
+    embedding_field = FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128, description="vector")
+    # 使用分区键创建字段
+    position_field = FieldSchema(name="position", dtype=DataType.VARCHAR, max_length=256, is_partition_key=True)
+    # 创建字段时指定默认值
+    fields = [
+        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
+        # configure default value `25` for field `age`
+        FieldSchema(name="age", dtype=DataType.INT64, default_value=25, description="age"),
+        embedding_field = FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128, description="vector")
+    ]
+
+    # 创建字段集合
+    from pymilvus import FieldSchema, CollectionSchema
+    id_field = FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, description="primary id")
+    age_field = FieldSchema(name="age", dtype=DataType.INT64, description="age")
+    embedding_field = FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128, description="vector")
+    # Enable partition key on a field if you need to implement multi-tenancy based on the partition-key field
+    position_field = FieldSchema(name="position", dtype=DataType.VARCHAR, max_length=256, is_partition_key=True)
+    # Set enable_dynamic_field to True if you need to use dynamic fields. 
+    schema = CollectionSchema(fields=[id_field, age_field, embedding_field], auto_id=False, enable_dynamic_field=True, description="desc of a collection")
+
+    # 使用字段创建集合
+    collection_name1 = "tutorial_1"
+    collection1 = Collection(name=collection_name1, schema=schema, using='default', shards_num=2)
+
+    # 使用数据字段创建集合中的字段
+    import pandas as pd
+    df = pd.DataFrame({
+        "id": [i for i in range(nb)],
+        "age": [random.randint(20, 40) for i in range(nb)],
+        "embedding": [[random.random() for _ in range(dim)] for _ in range(nb)],
+        "position": "test_pos"
+    })
+
+    collection, ins_res = Collection.construct_from_dataframe(
+        'my_collection',
+        df,
+        primary_field='id',
+        auto_id=False
+        )
+
+集合管理
+-------------------------
+.. code-block:: python 
+
+    from pymilvus import MilvusClient, DataType
+    client = MilvusClient(
+        uri="http://localhost:19530"
+    )
+    #快速创建集合
+    client.create_collection(
+        collection_name="quick_setup",
+        dimension=5
+    )
+    # 查看集合状态
+    res = client.get_load_state(
+        collection_name="quick_setup"
+    )
+    print(res)
+    # Output
+    # {
+    #     "state": "<LoadState: Loaded>"
+    # }
+    
+    #自定义创建集合
+    # 构建字段
+    schema = MilvusClient.create_schema(
+        auto_id=False,
+        enable_dynamic_field=True,
+    )
+    schema.add_field(field_name="my_id", datatype=DataType.INT64, is_primary=True)
+    schema.add_field(field_name="my_vector", datatype=DataType.FLOAT_VECTOR, dim=5)
+    # 配置索引
+    index_params = client.prepare_index_params()
+    index_params.add_index(
+        field_name="my_id",
+        index_type="STL_SORT"
+    )
+    index_params.add_index(
+        field_name="my_vector", 
+        index_type="IVF_FLAT",
+        metric_type="COSINE",
+        params={ "nlist": 128 }
+    )
 
 
 C++客户端
