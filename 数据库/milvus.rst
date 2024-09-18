@@ -260,6 +260,73 @@ https://milvus.io/docs/index-scalar-fields.md
         metric_type="COSINE",
         params={ "nlist": 128 }
     )
+    # 创建并加载索引
+    client.create_collection(
+        collection_name="customized_setup_1",
+        schema=schema,
+        index_params=index_params
+    )
+    time.sleep(5)
+    res = client.get_load_state(
+        collection_name="customized_setup_1"
+    )
+    print(res)
+
+    # 创建和构建索引分开
+    client.create_collection(
+        collection_name="customized_setup_2",
+        schema=schema,
+    )
+    res = client.get_load_state(
+        collection_name="customized_setup_2"
+    )
+    print(res)
+    client.create_index(
+        collection_name="customized_setup_2",
+        index_params=index_params
+    )
+    res = client.get_load_state(
+        collection_name="customized_setup_2"
+    )
+    print(res)
+
+    # 查看集合
+    res = client.describe_collection(
+        collection_name="customized_setup_2"
+    )
+    print(res)
+
+    # 查看数据库中所有集合
+    res = client.list_collections()
+
+    #加载集合
+    client.load_collection(
+        collection_name="customized_setup_2",
+        replica_number=1 # Number of replicas to create on query nodes. Max value is 1 for Milvus Standalone, and no greater than `queryNode.replicas` for Milvus Cluster.
+    )
+    res = client.get_load_state(
+        collection_name="customized_setup_2"
+    )
+    print(res)
+    #释放集合
+    client.release_collection(
+        collection_name="customized_setup_2"
+    )
+    # 删除集合
+    client.drop_collection(
+        collection_name="quick_setup"
+    )
+
+查询
+----------------------
+.. code-block:: python 
+
+    from pymilvus import MilvusClient, DataType
+    client = MilvusClient(
+        uri="http://localhost:19530"
+    )
+    # 查询集合中所有数据
+    result = client.query(collection_name=collection_name,filter="id >= 0")
 
 
 C++客户端
