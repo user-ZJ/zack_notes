@@ -27,6 +27,7 @@ Welcome to docs's documentation!
    docker使用/index
    books/index
    cuda编程/index
+   nginx使用/index
    *
 
 

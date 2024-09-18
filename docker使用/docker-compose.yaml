@@ -1,0 +1,29 @@
+services:
+  webapp:
+    image: xinference:v0.14.3  # 使用本地构建的镜像或指定的镜像
+    restart: always  #自动重启
+    volumes:
+      - /nasdata/0003_model/llm_model:/models  # 挂载本地路径到容器内部路径
+    privileged: true
+    ipc: host
+    ports:
+      - "9997:9997"  # 将容器的 5000 端口映射到宿主机的 5000 端口
+    command: xinference-local --host 0.0.0.0 --port 9997  # 覆盖默认的启动命令
+    environment:
+      - XINFERENCE_HOME=/root/xinference  # 设置环境变量
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    #depends_on:
+    #  - db  # 确保在 webapp 启动前 db 服务已经启动
+    networks:
+      - backend  # 使用定义的网络
+
+networks:
+  backend:
+    driver: bridge  # 使用 bridge 网络驱动

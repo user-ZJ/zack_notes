@@ -13,3 +13,4 @@
    mlc-llm环境配置
    vllm推理框架笔记
    chatglm系列模型
+   大模型性能测试

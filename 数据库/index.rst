@@ -10,6 +10,7 @@
    Redis
    elasticsearch使用
    milvus
+   clickhouse
 
    
    

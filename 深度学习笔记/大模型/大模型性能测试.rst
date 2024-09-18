@@ -1,0 +1,5 @@
+大模型性能测试
+=================================
+https://github.com/modelscope/evalscope/blob/main/README_zh.md
+
+https://github.com/ray-project/llmperf
