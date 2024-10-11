@@ -71,6 +71,7 @@ glog日志文件命名方式：/tmp/<program name>.<hostname>.<user name>.log.<s
 环境变量
 -----------------
 * GLOG_logtostderr=1(bool,默认为false)：将日志文件打印到 `stderr` 而不是打印到日志文件
+* GLOG_alsologtostderr=1(bool,默认为false)：将日志文件打印到 `stderr` 和日志文件
 * GLOG_stderrthreshold=N(int,默认为2) ：将日志级别大于等于N的日志拷贝到 `stderr` ;INFO,WARNING,ERROR,FATAL级别分别为0,1,2,3
 * GLOG_minloglevel=N(int,默认为0): 进记录日志级别大于等于N的日志 ;INFO,WARNING,ERROR,FATAL级别分别为0,1,2,3
 * GLOG_log_dir="/logs"(string,默认为""):指定日志文件存储路径
