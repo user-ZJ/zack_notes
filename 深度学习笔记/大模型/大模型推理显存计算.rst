@@ -1,0 +1,27 @@
+大模型推理显存计算
+========================================
+
+1. 大模型参数占用：参数量*2bytes
+2. kv cache:每个token显存(模型层数*Hidden Dim*2bytes*2) * token数 * 用户数
+3. Activation/buffers（中间变量）/overheads（碎片占用）：前面两项的10%
+
+
+Qwen2-72B-Instruct占用显存大小
+-------------------------------------------------
+"hidden_size": 8192
+
+"num_hidden_layers": 80,
+
+
+1. 模型参数占用显存：
+    72B*2 = 144G
+2. 单个token kv cache：
+    hidden_size * 2 * 2 * num_hidden_layers= 2.5M
+3. 10k token长度，10用户：
+    2.5M*10k*10 = 250G
+4. 其他占用：（144+250）*0.1 = 39.4G
+5. 总计：434G
+
+8卡3090 总显存192G
+模型+kv cache可用显存173G
+kv cache可用显存29G; 对用单用户最大token数为11.5k

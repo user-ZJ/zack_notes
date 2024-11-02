@@ -1,0 +1,34 @@
+监控工具
+------------------------------
+* prometheus:  docker pull prom/prometheus
+* grafana: docker pull grafana/grafana
+* es: docker pull docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+* kibana: docker pull docker.elastic.co/kibana/kibana:8.14.3
+
+
+fastapi接入prometheus
+--------------------------------------
+1. 安装 `pip install prometheus_fastapi_instrumentator`
+2. 编写fastapi服务
+
+.. code-block:: python 
+
+    from fastapi import FastAPI
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    app = FastAPI()
+
+    instrumentator = Instrumentator()
+    instrumentator.instrument(app,metric_namespace='myproject', metric_subsystem='myservice')
+    instrumentator.expose(app)
+
+    @app.get("/hello")                                                                                                                                                                                                                                                                                                                                                      
+    async def read_root():
+        return {"Hello": "World"}
+
+    if __name__ == "__main__":
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+
+3. 启动服务 `python main.py` 或 `uvicorn main:app --workers 16 --port 8000 --host 0.0.0.0`
+4. 通过api查看监控指标  http://localhost:8000/metrics
