@@ -32,3 +32,8 @@ fastapi接入prometheus
 
 3. 启动服务 `python main.py` 或 `uvicorn main:app --workers 16 --port 8000 --host 0.0.0.0`
 4. 通过api查看监控指标  http://localhost:8000/metrics
+
+
+grafana 画图
+----------------------------
+https://panzhongxian.cn/cn/2023/09/grafana-pannel-skills/
