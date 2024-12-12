@@ -1,0 +1,7 @@
+图谱
+=======================
+* KG: 知识图谱
+* EG(Eventic Graph):事理图谱
+* ELG(An Event Logic Graph):事件逻辑图
+* KAG:逻辑推理问答框架
+* STC AOG:知识的总体表达
