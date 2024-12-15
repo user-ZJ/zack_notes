@@ -30,4 +30,4 @@
    模型导出/macbert模型导出
    模型导出/SentenceTransformer导出
    dify使用记录
-   W2NER
+   实体抽取

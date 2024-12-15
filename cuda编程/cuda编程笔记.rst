@@ -42,6 +42,12 @@ GPU架构
    每个GPU可能有一个或多个SM，因此，为了有效地利用整个GPU，用户需要将并行计算分为block和线程。
 4. **GRID/kernel:** CUDA块被分组为一个逻辑实体，称为CUDA GRID。然后在设备上执行一个CUDA GRID。
 
+参考：https://zhuanlan.zhihu.com/p/413145211
+
+架构性能排序 | 英文：Tesla → Fermi → Kepler → Maxwell → Pascal → Volta → Turing → Ampere
+
+架构性能排序 | 中文：特斯拉 → 费米 → 开普勒 → 麦斯威尔 → 帕斯卡 → 沃塔尔 → 图灵 → 安倍
+
 使用GPU的方式
 ---------------------
 .. figure:: /images/cuda编程/cuda4.jpg
