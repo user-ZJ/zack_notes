@@ -246,8 +246,9 @@ gptq之前量化方法在没有很大精度损失的情况下只能量化Million
    此外，我们目前的结果不包括激活量化，因为它们在我们的目标场景中不是一个重要的瓶颈;但是，可以使用正交技术来支持这一点
 
 
+.. image:: /images/深度学习/gptq-2.png
 
-
+https://www.bilibili.com/video/BV1TX4y1U74K/?spm_id_from=333.1007.top_right_bar_window_history.content.click&vd_source=1cbcdbb91c2e108ff4f290eeb865ee30
 
 
 ZeroQuant-V2
