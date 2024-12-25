@@ -26,7 +26,45 @@ Qwen2-72B-Instruct占用显存大小
 模型+kv cache可用显存173G
 kv cache可用显存29G; 对用单用户最大token数为11.5k
 
+Qwen2-32B-Instruct占用显存大小
+-------------------------------------------------
+"hidden_size": 5120,
 
+"num_hidden_layers": 64,
+
+
+1. 模型参数占用显存：
+    32B*2 = 64G
+2. 单个token kv cache：
+    hidden_size * 2 * 2 * num_hidden_layers= 1.25M
+3. 10k token长度，10用户：
+    1.25M*10k*10 = 125G
+4. 其他占用：（64+125）*0.1 = 18.9G
+5. 总计：208G
+
+4卡3090 总显存96G
+模型+kv cache可用显存86.4G
+kv cache可用显存22.4G; 对用单用户最大token数为18k
+
+Qwen2-14B-Instruct占用显存大小
+-------------------------------------------------
+"hidden_size": 5120,
+
+"num_hidden_layers": 40,
+
+
+1. 模型参数占用显存：
+    14B*2 = 28G
+2. 单个token kv cache：
+    hidden_size * 2 * 2 * num_hidden_layers= 0.8M
+3. 10k token长度，10用户：
+    0.8M*10k*10 = 78G
+4. 其他占用：（28+78）*0.1 = 10.6G
+5. 总计：116G
+
+2卡3090 总显存48G
+模型+kv cache可用显存43.2G
+kv cache可用显存15.2G; 对用单用户最大token数为19k
 
 Qwen2-7B-Instruct占用显存大小
 -------------------------------------------------
@@ -40,9 +78,9 @@ Qwen2-7B-Instruct占用显存大小
 2. 单个token kv cache：
     hidden_size * 2 * 2 * num_hidden_layers= 0.4M
 3. 10k token长度，10用户：
-    2.5M*10k*10 = 250G
-4. 其他占用：（144+250）*0.1 = 39.4G
-5. 总计：434G
+    0.4M*10k*10 = 39G
+4. 其他占用：（14+39）*0.1 = 5.3G
+5. 总计：58.3G
 
 1卡3090 总显存24G
 模型+kv cache可用显存21G
