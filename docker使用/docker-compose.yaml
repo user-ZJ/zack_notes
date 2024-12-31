@@ -24,6 +24,38 @@ services:
     networks:
       - backend  # 使用定义的网络
 
+  qwen2_5-32B-1:
+    image: docker.dm-ai.cn/algorithm-research/zhanjie/xinference:v0.16.1  # 使用本地构建的镜像或指定的镜像
+    restart: always  #自动重启
+    volumes:
+      - /nasdata/zhanjie/models:/models  # 挂载本地路径到容器内部路径
+    privileged: true
+    ipc: host
+    ports:
+      - "9999:80"
+    entrypoint: python3 -m vllm.entrypoints.openai.api_server
+    command:
+      --model /models/Qwen2.5-32B-Instruct
+      --enable-lora 
+      --lora-modules qwen2_5-32B-1-0-4=/models/qwen2_5-32B-lora-1-0-4
+      --served-model-name Qwen2.5-32B-Instruct
+      --trust-remote-code
+      --tensor-parallel-size 4
+      --host 0.0.0.0
+      --port 80
+      --max-model-len 10999
+    environment:
+      - CUDA_VISIBLE_DEVICES=4,5,6,7
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 8 
+              capabilities: [gpu]
+    networks:
+      - backend  # 使用定义的网络
+
 networks:
   backend:
     driver: bridge  # 使用 bridge 网络驱动
