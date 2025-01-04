@@ -31,3 +31,6 @@
    模型导出/SentenceTransformer导出
    dify使用记录
    实体抽取
+   AWQ环境配置
+   GPTQ环境配置
+

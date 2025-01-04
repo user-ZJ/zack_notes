@@ -11,7 +11,7 @@ AutoAWQ安装
 
 .. code-block:: bash
 
-    docker run --gpus all --name awq -v /nasdata/zhanjie/models/:/models -it docker.dm-ai.cn/algorithm-research/pytorch/pytorch:2.1.2-cuda11.8-cudnn8-devel /bin/bash
+    docker run --gpus all --name awq -v /nasdata/zhanjie/models/:/models -it pytorch/pytorch:2.1.2-cuda11.8-cudnn8-devel /bin/bash
 
 2. 配置基础环境
 
