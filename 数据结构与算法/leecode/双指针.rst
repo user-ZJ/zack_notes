@@ -94,7 +94,10 @@
 
 最长不包含重复字符的子字符串
 ---------------------------------------
+leetcode: https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/?envType=study-plan-v2&envId=top-interview-150
+
 请从字符串中找出一格最长的不包含重复字符的子字符串，计算该最长子字符串的长度。
+
 
 .. tip:: 
 
@@ -102,24 +105,8 @@
     | 使用两个指针标记子字符串的起始和结束位置，
     | 记录两个指针的最大距离
 
-.. code-block:: cpp
-
-    int maxLength(vector<char>& arr) {
-            unordered_map<char,int> mmap;
-            int maxlen=0;
-            int i=0,j=0;
-            while(j<arr.size()){
-                if(mmap[arr[j]]==0){
-                    mmap[arr[j]]=1;
-                    maxlen = max(maxlen,j-i+1);
-                    j++;
-                }else{
-                    mmap[arr[i]] =0;
-                    i++;
-                }
-            }
-            return maxlen;
-    }
+.. literalinclude:: ./code/最长不包含重复字符的子字符串.cpp
+    :language: cpp
 
 
 两个链表的第一个公共节点
@@ -170,7 +157,6 @@
             {
                 if(pHead1==pHead2)
                     return pHead1;
-                    
                 pHead1=pHead1->next;
                 pHead2=pHead2->next;
             }
@@ -451,3 +437,19 @@ leetcode: https://leetcode.cn/problems/container-with-most-water/description/?en
 
 
 
+长度最小的子数组
+----------------------------------
+leetcode: https://leetcode.cn/problems/minimum-size-subarray-sum/description/?envType=study-plan-v2&envId=top-interview-150
+
+给定一个含有 n 个正整数的数组和一个正整数 target 。
+
+找出该数组中满足其总和大于等于 target 的长度最小的 
+子数组[nums-l, nums-l+1, ..., nums-r-1, nums-r] ，并返回其长度。如果不存在符合条件的子数组，返回 0 。
+
+.. tip::
+
+    | 使用双指针，滑动窗口
+    | 用两个指针表示滑动窗口的左右边界，移动右边界，直到子数组和大于等于 target，记录长度，然后移动左边界，直到子数组和小于 target，更新长度
+
+.. literalinclude:: ./code/长度最小的子数组.cpp
+    :language: cpp
