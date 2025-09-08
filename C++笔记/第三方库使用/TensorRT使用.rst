@@ -145,3 +145,5 @@ https://forums.developer.nvidia.com/t/how-to-use-tensorrt-by-the-multi-threading
 https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html
 
 https://docs.nvidia.com/deeplearning/tensorrt/sample-support-guide/index.html#introductory_parser_samples
+
+https://www.bilibili.com/video/BV1jj411Z7wG?spm_id_from=333.788.videopod.sections&vd_source=1cbcdbb91c2e108ff4f290eeb865ee30

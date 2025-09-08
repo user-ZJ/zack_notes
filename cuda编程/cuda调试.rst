@@ -281,6 +281,8 @@ Nsight Systems支持图形界面和命令行两种方式，本地调试使用图
 * -w/--show-output:true/false: Prints out the behavior of the profiler on the Terminal
 
 
+示例：https://help.aliyun.com/zh/ack/cloud-native-ai-suite/use-cases/using-nsight-system-to-realize-performance-analysis?spm=a2c4g.11186623.help-menu-85222.d_3_0_1.45bd1f3abzMt5H
+
 Nsight Compute
 --------------------
 文档地址：https://docs.nvidia.com/nsight-compute/index.html
