@@ -122,3 +122,18 @@ git tag
     git push origin tag_20170908
     # push所有tag
     git push origin --tags
+
+
+将远程仓库同步到本地仓库
+----------------------------
+.. code-block:: shell
+
+    mkdir sync && cd sync
+    git init
+    git remote add github GITHUB_REPO_URL
+    git remote add gitlab GITLAB_REPO_URL
+    #获取github的SOURCE_BRANCH分支，并push到gitlab的TARGET_BRANCH分支
+    git fetch --no-tags github SOURCE_BRANCH
+    git pull -u gitlab github/SOURCE_BRANCH:refs/heads/TARGET_BRANCH
+    #验证
+    git ls-remote gitlab refs/heads/TARGET_BRANCH

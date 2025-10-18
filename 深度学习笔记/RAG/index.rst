@@ -1,9 +1,9 @@
-大模型
+RAG
 ==================================
 
 .. toctree::
    :maxdepth: 2
-   :caption: 大模型
-   :name: 大模型
+   :caption: RAG
+   :name: RAG
 
    RAG范式

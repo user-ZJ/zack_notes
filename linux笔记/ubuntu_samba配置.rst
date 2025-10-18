@@ -1,4 +1,4 @@
-ubuntu samba配置
+ubuntu_samba配置
 ===========================
 
 安装samba
@@ -30,7 +30,7 @@ ubuntu samba配置
 
 在文件末尾添加以下内容
 
-.. code-block:: txt
+.. code-block:: text
 
     [zack]
         comment = public anonymous access

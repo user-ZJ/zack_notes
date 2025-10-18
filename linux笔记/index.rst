@@ -17,5 +17,6 @@ linux笔记
    glibc升级
    默认程序管理
    ubuntu服务自启动
+   ubuntu_samba配置
    
    

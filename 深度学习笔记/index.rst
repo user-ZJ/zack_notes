@@ -35,4 +35,5 @@
    GPTQ环境配置
    向量存储和检索
    RAG/index
+   推理框架/index
 

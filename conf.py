@@ -15,7 +15,8 @@ release = '1.0.0'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'myst_parser','sphinx.ext.githubpages','sphinx.ext.todo'
+    'myst_parser','sphinx.ext.githubpages','sphinx.ext.todo',
+    'sphinxcontrib.mermaid'
 ]
 
 todo_include_todos = True
