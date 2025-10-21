@@ -1,6 +1,10 @@
 vllm
 ============
 
+V1
+-------------------
+https://zhuanlan.zhihu.com/p/1900126076279160869
+
 .. mermaid::
 
     sequenceDiagram
