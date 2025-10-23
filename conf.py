@@ -16,8 +16,22 @@ release = '1.0.0'
 
 extensions = [
     'myst_parser','sphinx.ext.githubpages','sphinx.ext.todo',
-    'sphinxcontrib.mermaid'
+    'sphinxcontrib.mermaid',
+    # 'sphinxcontrib.images'
 ]
+
+# # 配置 Mermaid 生成图片（而非依赖浏览器渲染）
+# mermaid_output_format = 'png'  # 可选 'png' 或 'svg'
+# # mermaid_png_output_dir = '_static/mermaid_png'  # 图片输出目录（相对 source 目录）
+# mermaid_cmd = 'mmdc'  # 本地 mermaid-cli 的命令（需确保已安装）
+
+# images_config = {
+#     # 启用点击放大功能（点击图片弹出全屏预览）
+#     'override_image_directive': True,  # 覆盖默认的 .. image:: 指令
+#     'zoom_image': True,                # 允许图片被点击放大
+#     'default_image_width': '100%',      # 图片在网页中的默认显示宽度
+#     'default_image_height': 'auto',    # 高度自动适应
+# }
 
 todo_include_todos = True
 
