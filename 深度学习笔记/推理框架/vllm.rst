@@ -5,24 +5,78 @@ V1
 -------------------
 https://zhuanlan.zhihu.com/p/1900126076279160869
 
++--------------------------------+-----------------------------------------+
+|               类               |                  文件                   |
++================================+=========================================+
+| OpenAIServingChat              | vllm/entrypoints/openai/serving_chat.py |
++--------------------------------+-----------------------------------------+
+| AsyncLLM                       | vllm/v1/engine/async_llm.py             |
++--------------------------------+-----------------------------------------+
+| Processor                      | vllm/v1/engine/processor.py             |
++--------------------------------+-----------------------------------------+
+| InputPreprocessor              | vllm/inpus/preprocessor.py              |
++--------------------------------+-----------------------------------------+
+| EngineCore                     | vllm/v1/engine/core.py                  |
++--------------------------------+-----------------------------------------+
+| EngineCoreClient;AsyncMPClient | vllm/v1/engine/core_client.py           |
++--------------------------------+-----------------------------------------+
+| Scheduler                      | vllm/v1/core/sched/scheduler.py         |
++--------------------------------+-----------------------------------------+
+| UniProcExecutor                | vllm/executor/uniproc_executor.py       |
++--------------------------------+-----------------------------------------+
+| Worker                         | vllm/v1/worker/gpu_worker.py            |
++--------------------------------+-----------------------------------------+
+| GPUModelRunner                 | vllm/v1/worker/gpu_model_runner.py      |
++--------------------------------+-----------------------------------------+
+
+
+
+
 .. mermaid::
 
     sequenceDiagram
+        participant api_server.py
         participant OpenAIServingChat
         participant AsyncLLM
+        participant EngineCoreClient
+        participant AsyncMPClient
+        participant EngineCoreProc
         participant Processor
         participant InputPreprocessor
+        participant OutputProcessor
         participant Qwen3OmniMoeThinkerMultiModalProcessor
-        participant EngineCore
         participant Scheduler
         participant UniProcExecutor
         participant Worker(gpu_worker)
         participant GPUModelRunner
         participant XXXXModel
 
+        # 启动流程
+        api_server.py->>api_server.py: run_server
+        api_server.py->>api_server.py: run_server_worker
+        api_server.py->>api_server.py: build_async_engine_client
+        api_server.py->>AsyncLLM: from_vllm_config
+        AsyncLLM->>Processor: __init__
+        AsyncLLM->>OutputProcessor: __init__
+        AsyncLLM->>EngineCoreClient: make_sync_mp_client
+        EngineCoreClient->>AsyncMPClient: __init__
+        AsyncMPClient->>AsyncMPClient: MPClient.__init__ #加载模型
+        AsyncMPClient->>AsyncMPClient: MPClient.launch_core_engines #加载模型
+        AsyncMPClient->>EngineCoreProc: run_engine_core
+        EngineCoreProc->>EngineCoreProc: run_busy_loop
+        AsyncMPClient-->>EngineCoreClient: MPClient
+        EngineCoreClient-->>AsyncLLM: engine_core
+        AsyncLLM-->>api_server.py: engine_client
+        AsyncLLM->>AsyncLLM: _run_output_hanlder
+        api_server.py->>api_server.py: build_app
+        api_server.py->>api_server.py: init_app_state
+        api_server.py->>OpenAIServingChat: __init__
 
+        api_server.py-->XXXXModel: 生成阶段 #分割线
+        # 生成流程
         OpenAIServingChat->>OpenAIServingChat: create_chat_completion
         OpenAIServingChat->>OpenAIServingChat: _preprocess_chat #读取语音和图片
+        OpenAIServingChat->>OpenAIServingChat: _process_inputs
         OpenAIServingChat->>AsyncLLM: generate
         AsyncLLM->>AsyncLLM: add_request
         AsyncLLM->>Processor: process_inputs
@@ -33,30 +87,45 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         InputPreprocessor->>InputPreprocessor: _process_multimodal
         InputPreprocessor->>Qwen3OmniMoeThinkerMultiModalProcessor: apply
         AsyncLLM->>AsyncLLM: _add_request
-        AsyncLLM->>EngineCore: add_request_async
+        AsyncLLM->>AsyncMPClient: add_request_async
+        AsyncMPClient->>AsyncMPClient: _send_input
+
+        loop 接收request,并放到input队列
+            EngineCoreProc->>EngineCoreProc: process_input_sockets
+        end
+        loop
+            EngineCoreProc->>EngineCoreProc: _process_input_queue
+            EngineCoreProc->>EngineCoreProc: _handle_client_request
+            EngineCoreProc->>EngineCoreProc: add_request
+            EngineCoreProc->>Scheduler: add_request
+            Scheduler->>Scheduler: self.waiting.append(seq_group)
+
+            EngineCoreProc->>EngineCoreProc: _process_engine_step
+            EngineCoreProc->>EngineCoreProc: step
+            EngineCoreProc->>Scheduler: schedule
+            Scheduler->>Scheduler: _try_schedule_encoder_inputs
+
+            Scheduler->>Scheduler: _make_cached_request_data
+            Scheduler->>Scheduler: _update_after_schedule
+            Scheduler-->>EngineCoreProc: scheduler_output
 
 
-        EngineCore->>EngineCore: _process_input_queue
-        EngineCore->>EngineCore: _handle_client_request
-        EngineCore->>EngineCore: add_request
-        EngineCore->>Scheduler: add_request
-        Scheduler->>Scheduler: self.waiting.append(seq_group)
+            EngineCoreProc->>UniProcExecutor: execute_model
+            UniProcExecutor->>UniProcExecutor: collective_rpc
+            UniProcExecutor->>Worker(gpu_worker): execute_model
+            Worker(gpu_worker)->>GPUModelRunner: execute_model
+            GPUModelRunner->>GPUModelRunner: _prepare_inputs
+            GPUModelRunner->>GPUModelRunner: _execute_mm_encoder
+            GPUModelRunner->>XXXXModel: get_multimodal_embeddings
+            GPUModelRunner->>XXXXModel: forward
+            GPUModelRunner->>XXXXModel: compute_logits
+            UniProcExecutor-->>EngineCoreProc: model_output
 
-        EngineCore->>EngineCore: _process_engine_step
-        EngineCore->>EngineCore: step
-        EngineCore->>Scheduler: schedule
-        Scheduler->>Scheduler: _try_schedule_encoder_inputs
+            EngineCoreProc->>Scheduler: update_from_output
+            Scheduler-->>EngineCoreProc: engine_core_outputs
+        end
 
-        Scheduler->>Scheduler: _make_cached_request_data
-        Scheduler->>Scheduler: _update_after_schedule
+        loop 处理output队列,并发送数据
+            EngineCoreProc->>EngineCoreProc: process_output_sockets_ThreadLoop
+        end
 
-
-        EngineCore->>UniProcExecutor: execute_model
-        UniProcExecutor->>UniProcExecutor: collective_rpc
-        UniProcExecutor->>Worker(gpu_worker): execute_model
-        Worker(gpu_worker)->>GPUModelRunner: execute_model
-        GPUModelRunner->>GPUModelRunner: _prepare_inputs
-        GPUModelRunner->>GPUModelRunner: _execute_mm_encoder
-        GPUModelRunner->>XXXXModel: get_multimodal_embeddings
-        GPUModelRunner->>XXXXModel: forward
-        GPUModelRunner->>XXXXModel: compute_logits
