@@ -3,6 +3,8 @@ vllm
 
 V1
 -------------------
+vllm 0.11.1
+
 https://zhuanlan.zhihu.com/p/1900126076279160869
 
 +--------------------------------+-----------------------------------------+
@@ -28,6 +30,8 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
 +--------------------------------+-----------------------------------------+
 | GPUModelRunner                 | vllm/v1/worker/gpu_model_runner.py      |
 +--------------------------------+-----------------------------------------+
+| OutputProcessor                | vllm/v1/engine/output_processor.py      |
++--------------------------------+-----------------------------------------+
 
 
 
@@ -44,7 +48,7 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         participant Processor
         participant InputPreprocessor
         participant OutputProcessor
-        participant Qwen3OmniMoeThinkerMultiModalProcessor
+        participant QwenXXXMultiModalProcessor
         participant Scheduler
         participant UniProcExecutor
         participant Worker(gpu_worker)
@@ -62,8 +66,14 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         EngineCoreClient->>AsyncMPClient: __init__
         AsyncMPClient->>AsyncMPClient: MPClient.__init__ #加载模型
         AsyncMPClient->>AsyncMPClient: MPClient.launch_core_engines #加载模型
-        AsyncMPClient->>EngineCoreProc: run_engine_core
-        EngineCoreProc->>EngineCoreProc: run_busy_loop
+        AsyncMPClient->>+EngineCoreProc: run_engine_core
+        EngineCoreProc->>+EngineCoreProc: __init__
+        EngineCoreProc->>+EngineCoreProc: compute_encoder_budget
+        EngineCoreProc->>-EngineCoreProc: return
+        EngineCoreProc->>-EngineCoreProc: return
+        EngineCoreProc->>+EngineCoreProc: run_busy_loop
+        EngineCoreProc->>-EngineCoreProc: return
+        EngineCoreProc-->>-AsyncMPClient: return
         AsyncMPClient-->>EngineCoreClient: MPClient
         EngineCoreClient-->>AsyncLLM: engine_core
         AsyncLLM-->>api_server.py: engine_client
@@ -79,13 +89,27 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         OpenAIServingChat->>OpenAIServingChat: _process_inputs
         OpenAIServingChat->>AsyncLLM: generate
         AsyncLLM->>AsyncLLM: add_request
-        AsyncLLM->>Processor: process_inputs
-        Processor->>InputPreprocessor: preprocess
-        InputPreprocessor->>InputPreprocessor: _process_decoder_only_prompt
-        InputPreprocessor->>InputPreprocessor: _prompt_to_llm_inputs
-        InputPreprocessor->>InputPreprocessor: _process_tokens
-        InputPreprocessor->>InputPreprocessor: _process_multimodal
-        InputPreprocessor->>Qwen3OmniMoeThinkerMultiModalProcessor: apply
+        AsyncLLM->>+Processor: process_inputs
+        Processor->>+InputPreprocessor: preprocess
+        InputPreprocessor->>+InputPreprocessor: _process_decoder_only_prompt
+        InputPreprocessor->>+InputPreprocessor: _prompt_to_llm_inputs
+        InputPreprocessor->>+InputPreprocessor: _process_tokens
+        InputPreprocessor->>+InputPreprocessor: _process_multimodal
+        InputPreprocessor->>+QwenXXXMultiModalProcessor: apply
+        QwenXXXMultiModalProcessor->>+QwenXXXMultiModalProcessor: _to_mm_items
+        QwenXXXMultiModalProcessor-->>-QwenXXXMultiModalProcessor: return
+        QwenXXXMultiModalProcessor->>+QwenXXXMultiModalProcessor: _cache_apply_hf_processor
+        QwenXXXMultiModalProcessor-->>-QwenXXXMultiModalProcessor: return
+        QwenXXXMultiModalProcessor->>+QwenXXXMultiModalProcessor: _maybe_apply_prompt_updates
+        QwenXXXMultiModalProcessor-->>-QwenXXXMultiModalProcessor: return
+        QwenXXXMultiModalProcessor-->>-InputPreprocessor: MultiModalInputs
+        InputPreprocessor->>-InputPreprocessor: return
+        InputPreprocessor->>-InputPreprocessor: return
+        InputPreprocessor->>-InputPreprocessor: return
+        InputPreprocessor->>-InputPreprocessor: return
+        InputPreprocessor-->>-Processor: ProcessorInputs
+        Processor-->>-AsyncLLM: EngineCoreRequest
+        
         AsyncLLM->>AsyncLLM: _add_request
         AsyncLLM->>AsyncMPClient: add_request_async
         AsyncMPClient->>AsyncMPClient: _send_input
