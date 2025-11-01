@@ -118,23 +118,27 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
             EngineCoreProc->>EngineCoreProc: process_input_sockets
         end
         loop
-            EngineCoreProc->>EngineCoreProc: _process_input_queue
-            EngineCoreProc->>EngineCoreProc: _handle_client_request
-            EngineCoreProc->>EngineCoreProc: add_request
+            EngineCoreProc->>+EngineCoreProc: run_busy_loop
+            EngineCoreProc->>+EngineCoreProc: _process_input_queue
+            EngineCoreProc->>+EngineCoreProc: _handle_client_request
+            EngineCoreProc->>+EngineCoreProc: add_request
             EngineCoreProc->>Scheduler: add_request
             Scheduler->>Scheduler: self.waiting.append(seq_group)
+            EngineCoreProc->>-EngineCoreProc: return
+            EngineCoreProc->>-EngineCoreProc: return
+            EngineCoreProc->>-EngineCoreProc: return
 
-            EngineCoreProc->>EngineCoreProc: _process_engine_step
-            EngineCoreProc->>EngineCoreProc: step
-            EngineCoreProc->>Scheduler: schedule
+            EngineCoreProc->>+EngineCoreProc: _process_engine_step
+            EngineCoreProc->>+EngineCoreProc: step
+            EngineCoreProc->>+Scheduler: schedule
             Scheduler->>Scheduler: _try_schedule_encoder_inputs
 
             Scheduler->>Scheduler: _make_cached_request_data
             Scheduler->>Scheduler: _update_after_schedule
-            Scheduler-->>EngineCoreProc: scheduler_output
+            Scheduler-->>-EngineCoreProc: scheduler_output
 
 
-            EngineCoreProc->>UniProcExecutor: execute_model
+            EngineCoreProc->>+UniProcExecutor: execute_model
             UniProcExecutor->>UniProcExecutor: collective_rpc
             UniProcExecutor->>Worker(gpu_worker): execute_model
             Worker(gpu_worker)->>GPUModelRunner: execute_model
@@ -143,10 +147,15 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
             GPUModelRunner->>XXXXModel: get_multimodal_embeddings
             GPUModelRunner->>XXXXModel: forward
             GPUModelRunner->>XXXXModel: compute_logits
-            UniProcExecutor-->>EngineCoreProc: model_output
+            GPUModelRunner-->>Worker(gpu_worker): model_output
+            Worker(gpu_worker)-->>UniProcExecutor: model_output
+            UniProcExecutor-->>-EngineCoreProc: model_output
 
-            EngineCoreProc->>Scheduler: update_from_output
-            Scheduler-->>EngineCoreProc: engine_core_outputs
+            EngineCoreProc->>+Scheduler: update_from_output
+            Scheduler-->>-EngineCoreProc: engine_core_outputs
+            EngineCoreProc->>-EngineCoreProc: return
+            EngineCoreProc->>-EngineCoreProc: return
+            EngineCoreProc->>-EngineCoreProc: return
         end
 
         loop 处理output队列,并发送数据
