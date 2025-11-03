@@ -48,7 +48,7 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         participant Processor
         participant InputPreprocessor
         participant OutputProcessor
-        participant QwenXXXMultiModalProcessor
+        participant QwenXXXMultiModalProcessor as XXXMultiModalProcessor<br/>BaseMultiModalProcessor
         participant Scheduler
         participant UniProcExecutor
         participant Worker(gpu_worker)
@@ -68,8 +68,16 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         AsyncMPClient->>AsyncMPClient: MPClient.launch_core_engines #加载模型
         AsyncMPClient->>+EngineCoreProc: run_engine_core
         EngineCoreProc->>+EngineCoreProc: __init__
-        EngineCoreProc->>+EngineCoreProc: compute_encoder_budget
-        EngineCoreProc->>-EngineCoreProc: return
+        EngineCoreProc->>+UniProcExecutor: __init__
+        UniProcExecutor->>+Worker(gpu_worker): init_worker
+        Worker(gpu_worker)-->>-UniProcExecutor: return
+        UniProcExecutor->>+Worker(gpu_worker): init_device
+        Worker(gpu_worker)->>+GPUModelRunner: __init__
+        GPUModelRunner-->>-Worker(gpu_worker): return
+        Worker(gpu_worker)-->>-UniProcExecutor: return
+        UniProcExecutor-->>-EngineCoreProc: return
+        EngineCoreProc->>+Scheduler: __init__
+        Scheduler-->>-EngineCoreProc: return
         EngineCoreProc->>-EngineCoreProc: return
         EngineCoreProc->>+EngineCoreProc: run_busy_loop
         EngineCoreProc->>-EngineCoreProc: return
@@ -82,7 +90,7 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         api_server.py->>api_server.py: init_app_state
         api_server.py->>OpenAIServingChat: __init__
 
-        api_server.py-->XXXXModel: 生成阶段 #分割线
+        Note over api_server.py,XXXXModel: 生成阶段 #分割线
         # 生成流程
         OpenAIServingChat->>OpenAIServingChat: create_chat_completion
         OpenAIServingChat->>OpenAIServingChat: _preprocess_chat #读取语音和图片

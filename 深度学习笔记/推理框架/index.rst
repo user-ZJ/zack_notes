@@ -8,3 +8,4 @@
 
    vllm
    sglang
+   推理服务

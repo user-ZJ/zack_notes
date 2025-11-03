@@ -1,0 +1,14 @@
+推理服务
+============
+
+.. mermaid::
+
+    sequenceDiagram
+        participant api_server.py
+        
+
+        # 启动流程
+        api_server.py->>api_server.py: run_server
+        
+        # 生成流程
+        
