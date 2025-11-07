@@ -55,7 +55,7 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         participant GPUModelRunner
         participant XXXXModel
 
-        # 启动流程
+         Note over api_server.py,XXXXModel: 启动流程
         api_server.py->>api_server.py: run_server
         api_server.py->>api_server.py: run_server_worker
         api_server.py->>api_server.py: build_async_engine_client
@@ -73,6 +73,12 @@ https://zhuanlan.zhihu.com/p/1900126076279160869
         Worker(gpu_worker)-->>-UniProcExecutor: return
         UniProcExecutor->>+Worker(gpu_worker): init_device
         Worker(gpu_worker)->>+GPUModelRunner: __init__
+        GPUModelRunner-->>-Worker(gpu_worker): return
+        Worker(gpu_worker)-->>-UniProcExecutor: return
+        UniProcExecutor->>+Worker(gpu_worker): load_model
+        Worker(gpu_worker)->>+GPUModelRunner: load_model
+        GPUModelRunner->>+XXXXModel: __init__
+        XXXXModel-->>-GPUModelRunner: return
         GPUModelRunner-->>-Worker(gpu_worker): return
         Worker(gpu_worker)-->>-UniProcExecutor: return
         UniProcExecutor-->>-EngineCoreProc: return
