@@ -5,10 +5,47 @@
 
     sequenceDiagram
         participant api_server.py
+        participant ServingEngine
+        participant XXXPipeline
         
 
-        # 启动流程
-        api_server.py->>api_server.py: run_server
+        api_server.py->>api_server.py: select_pipeline
+        api_server.py->>+XXXPipeline: from_config
+        XXXPipeline->>XXXPipeline: create_execute_node_groups
+        XXXPipeline-->>XXXPipeline: return
+        XXXPipeline-->>-api_server.py: return
+
+        api_server.py->>+ServingEngine: __init__
+        ServingEngine-->>-api_server.py: return
+
         
         # 生成流程
-        
+        api_server.py->>+ServingEngine: create_generation
+        ServingEngine->>+ServingEngine: do_create_genaration
+        ServingEngine->>+ServingEngine: create_pipeline_input
+        ServingEngine-->>-ServingEngine: return
+        ServingEngine->>+XXXPipeline: generate
+        XXXPipeline->>XXXPipeline: create_handle_loop
+        XXXPipeline->>XXXPipeline: handle_loop
+        loop
+            XXXPipeline->>XXXPipeline: node_group_recv
+            XXXPipeline->>XXXPipeline: get_state
+            XXXPipeline->>XXXPipeline: state_outputs_append
+            XXXPipeline->>XXXPipeline: state_event_set
+        end
+        XXXPipeline->>XXXPipeline: do_generate
+        loop
+            XXXPipeline->>XXXPipeline: send_to_node_groups
+            XXXPipeline->>XXXPipeline: waiting_for_event
+            XXXPipeline-->>XXXPipeline: event_clear
+            alt finished
+                XXXPipeline->>XXXPipeline: break
+            end
+        end
+        XXXPipeline-->>-ServingEngine: return
+        ServingEngine-->>-ServingEngine: return
+        ServingEngine-->>-api_server.py: generation_result
+
+
+
+                
