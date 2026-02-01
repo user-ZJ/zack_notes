@@ -1,6 +1,9 @@
 推理服务
 ============
 
+时序图
+-----------
+
 .. mermaid::
 
     sequenceDiagram
@@ -45,6 +48,65 @@
         XXXPipeline-->>-ServingEngine: return
         ServingEngine-->>-ServingEngine: return
         ServingEngine-->>-api_server.py: generation_result
+
+
+架构图（分层架构）
+---------------------
+
+.. mermaid::
+
+    graph TD
+        subgraph L1["第1层：客户端层"]
+            L1_a[" "]
+            User["User"]
+            L1_b[" "]
+            L1_c[" "]
+            L1_a ~~~ User ~~~ L1_b ~~~ L1_c
+        end
+        
+        subgraph L2["第2层：API网关层"]
+            L2_a[" "]
+            APIServer["API Server"]
+            PipelineConfig["Pipeline Config"]
+            L2_b[" "]
+            L2_a ~~~ APIServer ~~~ PipelineConfig ~~~ L2_b
+        end
+        
+        subgraph L3["第3层：服务编排层"]
+            L3_a[" "]
+            ServingEngine["Serving Engine"]
+            XXXPipeline["XXX Pipeline"]
+            StateManagement["State Mgmt"]
+            L3_a ~~~ ServingEngine ~~~ XXXPipeline ~~~ StateManagement
+        end
+        
+        subgraph L4["第4层：计算执行层"]
+            L4_a[" "]
+            NodeGroups["Execute Node Groups"]
+            L4_b[" "]
+            L4_c[" "]
+            L4_a ~~~ NodeGroups ~~~ L4_b ~~~ L4_c
+        end
+        
+        User --> APIServer
+        APIServer --> ServingEngine
+        ServingEngine --> XXXPipeline
+        XXXPipeline --> NodeGroups
+        XXXPipeline -.->|状态| StateManagement
+        
+        style L1 fill:#e1f5ff,stroke:#01579b,stroke-width:3px
+        style L2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+        style L3 fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+        style L4 fill:#e8f5e9,stroke:#1b5e20,stroke-width:3px
+        style L1_a fill:none,stroke:none
+        style L1_b fill:none,stroke:none
+        style L1_c fill:none,stroke:none
+        style L2_a fill:none,stroke:none
+        style L2_b fill:none,stroke:none
+        style L3_a fill:none,stroke:none
+        style L4_a fill:none,stroke:none
+        style L4_b fill:none,stroke:none
+        style L4_c fill:none,stroke:none
 
 
 
