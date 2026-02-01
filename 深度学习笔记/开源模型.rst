@@ -1,0 +1,72 @@
+开源模型
+=======================
+
+去噪
+-----------------------
+* CleanMel
+
+VAD
+-----------------------
+* HaresNet-VAD
+* LightVAD
+* py-webrtcvad
+
+检测
+-----------------------
+* pyannote-audio
+
+情感
+-----------------------
+* Emo2Vec
+* SenseVoice
+
+韵律
+-----------------------
+* VoxProfile
+
+ASR
+-----------------------
+* MiMo-Audio
+* StepAudio2
+* Whisper
+* SenseVoice
+* FireRedASR
+
+榜单：https://huggingface.co/spaces/hf-audio/open_asr_leaderboard
+
+TTS
+-----------------------
+* VoiceSculptor
+* CosyVoice2
+* F5-TTS
+* Dia-1.6B
+* ElevenLabs
+* Sesame
+
+
+PDF处理
+-----------------------
+* PDFMiner
+* PyMuPDF
+* pdf2image
+* PDFMathTranslate pdf翻译
+* CopyTranslate PDF内容复制翻译
+* Qtranslate PDF文档翻译
+
+
+大模型
+-----------------------
+中医大模型
+```````````````
+* 仲景
+* 海河·岐伯
+* 数智岐黄
+* 数智本草
+* TCMLLM
+* ShenNong-TCM-LLM
+* Huang-Di
+* 本草智库
+* 华佗
+* 岐黄问道
+* 聪宝素问
+* 天河灵枢
