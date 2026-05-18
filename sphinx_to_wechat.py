@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 def fix_pre_blocks(html_content: str) -> str:
-    """在 <pre> 块内插入 <br> 保留换行，并将空格替换为 &nbsp; 保留缩进。"""
+    """在 <pre> 块内插入换行和缩进，使其兼容微信公众号编辑器。"""
 
     def fix_pre_content(match):
         full_match = match.group(0)
@@ -33,24 +33,50 @@ def fix_pre_blocks(html_content: str) -> str:
 
         fixed_lines = []
         for line in lines:
-            # 处理所有 <span class="w"> 中的空格（不仅是行首的，中间的也要保留）
+            # 处理 <span class="w"> 标签 - 将其内容提取出来（去掉标签）
+            # 微信公众号编辑器无法正确处理带标签的缩进
+            def replace_span_w(m):
+                span_content = m.group(1)
+                # 将普通空格替换为 &nbsp;，然后移除 <span class="w"> 标签
+                span_content = span_content.replace(' ', '&nbsp;')
+                return span_content
+            
             line = re.sub(
-                r'<span class="w">( +)</span>',
-                lambda m: '<span class="w">' + '&nbsp;' * len(m.group(1)) + '</span>',
+                r'<span class="w">([^<]*)</span>',
+                replace_span_w,
                 line
             )
-            # 处理行首裸空格
-            leading_match = re.match(r'^( +)', line)
-            if leading_match:
-                leading_spaces = leading_match.group(1)
+            
+            # 处理行首裸空格（不在任何标签内的空格）
+            # 需要找到第一个非空格字符的位置
+            leading_spaces = ''
+            i = 0
+            while i < len(line):
+                if line[i] == ' ':
+                    leading_spaces += ' '
+                    i += 1
+                elif line[i:i+6] == '&nbsp;':
+                    # 已经是 &nbsp;，跳过
+                    i += 6
+                elif line[i] == '<':
+                    # 遇到标签，停止
+                    break
+                else:
+                    # 遇到其他字符，停止
+                    break
+            
+            if leading_spaces:
                 line = '&nbsp;' * len(leading_spaces) + line[len(leading_spaces):]
+            
             fixed_lines.append(line)
 
-        # 最后一个元素如果是空字符串（即原文以 \n 结尾），不加 <br>
-        if fixed_lines and fixed_lines[-1] == '':
-            inner_fixed = '<br>\n'.join(fixed_lines[:-1]) + '\n'
-        else:
-            inner_fixed = '<br>\n'.join(fixed_lines)
+        # 过滤掉末尾的空行
+        while fixed_lines and fixed_lines[-1] == '':
+            fixed_lines.pop()
+        
+        # 使用 <span> 标签配合 <br> 换行，避免 <p> 标签产生的额外段落间距
+        # 每行用 <span> 包裹，末尾加 <br>
+        inner_fixed = '<br>'.join(f'<span>{line}</span>' for line in fixed_lines)
 
         return opening_tag + inner_fixed + closing_tag
 
