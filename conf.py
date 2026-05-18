@@ -16,8 +16,14 @@ release = '1.0.0'
 
 extensions = [
     'myst_parser','sphinx.ext.githubpages','sphinx.ext.todo',
+    'sphinx.ext.mathjax',
     'sphinxcontrib.mermaid',
     # 'sphinxcontrib.images'
+]
+
+myst_enable_extensions = [
+    'amsmath',
+    'dollarmath',
 ]
 
 # # 配置 Mermaid 生成图片（而非依赖浏览器渲染）
