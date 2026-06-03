@@ -3,11 +3,9 @@ ASR
 
 .. toctree::
    :maxdepth: 2
-   :caption: ASR
-   :name: ASR
+   :caption: kaldi
+   :name: kaldi
    :glob:
 
-   ASR后处理
-   kaldi/index
    *
    

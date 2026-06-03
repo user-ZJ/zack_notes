@@ -81,6 +81,8 @@ LATEX_TO_UNICODE = {
     r'\infty': '∞', r'\sum': '∑', r'\prod': '∏', r'\int': '∫',
     r'\sqrt': '√', r'\nabla': '∇', r'\partial': '∂', r'\cdot': '·',
     r'\dots': '…', r'\ldots': '…', r'\cdots': '⋯', r'\in': '∈',
+    # 尖括号
+    r'\langle': '⟨', r'\rangle': '⟩',
     # 三角函数
     r'\sin': 'sin', r'\cos': 'cos', r'\tan': 'tan',
     r'\arcsin': 'arcsin', r'\arccos': 'arccos', r'\arctan': 'arctan',
@@ -114,6 +116,10 @@ def latex_to_unicode(formula_text):
     
     result = re.sub(r'\\text\{([^}]+)\}', protect_text, result)
     
+    # 在处理任何下标之前，先将占位符转换为 HTML 实体
+    # 这样占位符中的下划线不会被当作下标标记处理
+    result = result.replace('__LT__', '&lt;').replace('__GT__', '&gt;')
+    
     # 先替换大型运算符（\sum, \prod, \int），这样它们后面的下标不会被错误转换
     for latex, unicode_char in LATEX_TO_UNICODE.items():
         result = result.replace(latex, unicode_char)
@@ -128,9 +134,29 @@ def latex_to_unicode(formula_text):
     # - 前面是希腊字母（如 α_i）
     # - 前面是大写字母（如 X_i）
     # - 前面是运算符（如 ∑_i）
+    # - 前面是小写字母（如 e_i）
     # - 不转换小写字母之间的下划线（如 total_prob）
-    result = re.sub(r'([Α-Ωα-ωA-Z0-9∑∏∫√])_\{(.+?)\}', lambda m: m.group(1) + subscript_text(m.group(2)), result)
-    result = re.sub(r'([Α-Ωα-ωA-Z0-9∑∏∫√])_([a-zA-Z0-9])', lambda m: m.group(1) + subscript_char(m.group(2)), result)
+    # 对于花括号形式的下标（如 y_{<i}），总是转换
+    # 对于单字符下标，使用负向后瞻来排除小写字母后的下划线（但允许其他情况）
+    # 对于 _< 或 _> 的形式（如 y_<i），也需要处理（没有负向后瞻限制）
+    
+    # 处理花括号下标
+    result = re.sub(r'_\{([^}]+)\}', lambda m: subscript_text(m.group(1)), result)
+    
+    # 处理 _< 或 _> 的形式（如 y_<i）- 这些肯定是下标，不需要负向后瞻限制
+    # 先处理 _< 后面跟字符的情况（如 _<i），保持后面的字符原样
+    result = re.sub(r'_<([a-zA-Z0-9])', '&lt;\\1', result)
+    result = re.sub(r'_>([a-zA-Z0-9])', '&gt;\\1', result)
+    
+    # 然后处理单独的 _< 或 _>
+    result = re.sub(r'_<', '&lt;', result)
+    result = re.sub(r'_>', '&gt;', result)
+    
+    # 处理 _<...> 的形式（如 _<i+1>）
+    result = re.sub(r'_<([^>]+)>', lambda m: '&lt;' + m.group(1) + '&gt;', result)
+    
+    # 处理单字符下标（需要负向后瞻限制，避免转换变量名）
+    result = re.sub(r'(?<![a-z])_([a-zA-Z0-9])', lambda m: subscript_char(m.group(1)), result)
     
     # 清理多余的花括号
     result = result.replace('{', '').replace('}', '')
@@ -183,7 +209,64 @@ def superscript_text(text):
 
 def subscript_text(text):
     """将文本转换为下标形式（简化版）。"""
-    return ''.join(subscript_char(c) for c in text)
+    # 在转换的同时，将 < 和 > 转义为 HTML 实体，避免被当作标签处理
+    result = []
+    i = 0
+    while i < len(text):
+        # 检查是否是占位符（__LT__ 和 __GT__）
+        if i + 6 <= len(text) and text[i:i+6] == '__LT__':
+            result.append('&lt;')
+            i += 6
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        elif i + 6 <= len(text) and text[i:i+6] == '__GT__':
+            result.append('&gt;')
+            i += 6
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        # 检查是否是 HTML 实体（&lt; 和 &gt;）- &lt; 和 &gt; 都是4个字符
+        elif i + 4 <= len(text) and text[i:i+4] == '&lt;':
+            result.append('&lt;')
+            i += 4
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        elif i + 4 <= len(text) and text[i:i+4] == '&gt;':
+            result.append('&gt;')
+            i += 4
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        elif text[i] == '<':
+            result.append('&lt;')
+            i += 1
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        elif text[i] == '>':
+            result.append('&gt;')
+            i += 1
+            # 继续转换剩余文本为下标形式
+            while i < len(text):
+                result.append(subscript_char(text[i]))
+                i += 1
+            break
+        else:
+            result.append(subscript_char(text[i]))
+            i += 1
+    return ''.join(result)
 
 
 def fix_math_blocks(html_content: str) -> str:
@@ -194,8 +277,8 @@ def fix_math_blocks(html_content: str) -> str:
         if not formula_text:
             return formula_text
         
-        # 解码 HTML 实体
-        formula_text = formula_text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+        # 注意：占位符转换已经在调用之前完成（在 process_math_span/process_math_div 等函数中）
+        # 这里不再进行占位符转换，直接处理公式内容
         
         # 去除前后的 \( \) 或 \[ \] 标记
         formula_text = formula_text.strip()
@@ -244,8 +327,56 @@ def fix_math_blocks(html_content: str) -> str:
         # 处理 align 环境中的 & 符号
         formula_text = formula_text.replace('&', '')
         
-        # 处理 \frac{a}{b} -> a/b
-        formula_text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'\1/\2', formula_text)
+        # 处理 \frac{a}{b} -> a/b（支持嵌套花括号）
+        def parse_frac(text):
+            # 找到 \frac 命令的位置
+            idx = text.find(r'\frac')
+            if idx == -1:
+                return text
+            
+            # 找到分子和分母的花括号
+            start = idx + 5  # 跳过 \frac
+            depth = 0
+            brace_positions = []
+            
+            # 跳过花括号前的空白
+            i = 0
+            while i < len(text[start:]):
+                c = text[start + i]
+                if c.isspace():
+                    i += 1
+                    continue
+                if c == '{':
+                    depth += 1
+                    if depth == 1:
+                        brace_positions.append(start + i)
+                elif c == '}':
+                    depth -= 1
+                    if depth == 0:
+                        brace_positions.append(start + i)
+                i += 1
+            
+            # 应该有4个位置：分子开始、分子结束、分母开始、分母结束
+            if len(brace_positions) >= 4:
+                numerator_start = brace_positions[0] + 1
+                numerator_end = brace_positions[1]
+                denominator_start = brace_positions[2] + 1
+                denominator_end = brace_positions[3]
+                
+                numerator = text[numerator_start:numerator_end]
+                denominator = text[denominator_start:denominator_end]
+                
+                # 替换 \frac{...}{...} 为 (...) / (...)
+                result = text[:idx] + f'({numerator})/({denominator})' + text[denominator_end+1:]
+                return result
+            return text
+        
+        # 处理 \frac 命令（最多处理10次，防止无限循环）
+        for _ in range(10):
+            old_text = formula_text
+            formula_text = parse_frac(formula_text)
+            if formula_text == old_text:
+                break
         
         # 将 LaTeX 换行符转换为 HTML 换行
         formula_text = formula_text.replace(r'\\', '\n')
@@ -283,6 +414,13 @@ def fix_math_blocks(html_content: str) -> str:
         full_match = match.group(0)
         # 提取标签内的文本内容（即原始LaTeX）
         text_content = re.sub(r'<[^>]+>', '', full_match)
+        # 将原始的 < 和 > 替换为占位符（处理未转义的情况）
+        text_content = text_content.replace('<', '__LT__').replace('>', '__GT__')
+        # 将 HTML 实体也转换为占位符
+        text_content = text_content.replace('&lt;', '__LT__').replace('&gt;', '__GT__')
+        # 将 &amp; 解码为 &
+        text_content = text_content.replace('&amp;', '&')
+        # 调用处理函数
         result = wrap_formula_with_content(text_content)
         return result if result else full_match
     
@@ -291,11 +429,25 @@ def fix_math_blocks(html_content: str) -> str:
     # 处理传统的 math 类 div 标签（display公式）
     def process_math_div(match):
         full_match = match.group(0)
+        # 提取标签内的文本内容（即原始LaTeX）
         text_content = re.sub(r'<[^>]+>', '', full_match)
+        # 将原始的 < 和 > 替换为占位符（处理未转义的情况）
+        text_content = text_content.replace('<', '__LT__').replace('>', '__GT__')
+        # 将 HTML 实体也转换为占位符
+        text_content = text_content.replace('&lt;', '__LT__').replace('&gt;', '__GT__')
+        # 将 &amp; 解码为 &
+        text_content = text_content.replace('&amp;', '&')
+        # 调用处理函数
         result = wrap_formula_with_content(text_content)
-        return result if result else full_match
+        # 在每个公式后面添加换行
+        if result:
+            return result + '\n'
+        return full_match
     
     html_content = re.sub(r'<div\s+class="math[^"]*"[^>]*>.*?</div>', process_math_div, html_content, flags=re.DOTALL)
+    
+    # 将公式之间的换行转换为 HTML 换行
+    html_content = re.sub(r'</span>\s*\n\s*<span style="font-family:', '</span><br><span style="font-family:', html_content)
     
     # 处理 MathJax 3+ 渲染后的 mjx-container 标签
     def process_mjx_container(match):
@@ -304,12 +456,18 @@ def fix_math_blocks(html_content: str) -> str:
         latex_match = re.search(r'data-latex="([^"]+)"', full_match)
         if latex_match:
             latex = latex_match.group(1)
-            latex = latex.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+            # 解码 HTML 实体，但将 &lt; 和 &gt; 转换为占位符而不是原始字符
+            latex = latex.replace('&amp;', '&')
+            latex = latex.replace('&lt;', '__LT__').replace('&gt;', '__GT__')
+            # 也处理可能存在的原始 < 和 >
+            latex = latex.replace('<', '__LT__').replace('>', '__GT__')
             result = wrap_formula_with_content(latex)
             return result if result else full_match
         # 提取文本内容
         text_content = re.sub(r'<[^>]+>', '', full_match)
         text_content = re.sub(r'\s+', ' ', text_content).strip()
+        # 将 < 和 > 转换为占位符
+        text_content = text_content.replace('<', '__LT__').replace('>', '__GT__')
         result = wrap_formula_with_content(text_content)
         return result if result else full_match
     
@@ -328,14 +486,32 @@ def fix_math_blocks(html_content: str) -> str:
     html_content = re.sub(r'<(span|div)\s+class="[^"]*equation[^"]*"[^>]*>.*?</\1>', process_math_span, html_content, flags=re.DOTALL)
     
     # 处理已经被包裹在 font-family: 'Times New Roman' span 中的公式
-    # 这些公式可能仍然包含 LaTeX 环境声明
+    # 这些公式可能仍然包含 LaTeX 环境声明或未转义的 < > 字符
     def process_existing_math_span(match):
         full_match = match.group(0)
-        # 提取标签内的文本内容
-        text_content = re.sub(r'<[^>]+>', '', full_match)
-        text_content = text_content.strip()
-        # 检查是否包含 LaTeX 环境声明
-        if '\\begin{' in text_content or '\\end{' in text_content:
+        # 使用正则表达式提取标签内容（不包括标签本身）
+        # 匹配 <span ...>content</span> 并提取 content
+        content_match = re.search(r'<span[^>]*>(.*?)</span>', full_match, flags=re.DOTALL)
+        if content_match:
+            text_content = content_match.group(1).strip()
+        else:
+            # 如果匹配失败，使用简单方法提取文本
+            text_content = re.sub(r'<[^>]+>', '', full_match).strip()
+        
+        # 检查是否已经处理过（防止重复处理）
+        # 已经处理过的标志是：包含 &lt; 或 &gt;，但不包含原始的 < 或 >
+        has_escaped = '&lt;' in text_content or '&gt;' in text_content
+        has_unescaped = '<' in text_content or '>' in text_content
+        if has_escaped and not has_unescaped:
+            # 如果只有转义的 &lt; &gt;，没有原始的 < >，说明已经处理过了
+            return full_match
+        
+        # 检查是否包含 LaTeX 环境声明或 < > 字符（包括转义形式或占位符）
+        if '\\begin{' in text_content or '\\end{' in text_content or '<' in text_content or '>' in text_content or '&lt;' in text_content or '&gt;' in text_content or '__LT__' in text_content or '__GT__' in text_content:
+            # 保存原始的 &lt; 和 &gt;
+            text_content = text_content.replace('&lt;', '__LT__').replace('&gt;', '__GT__')
+            # 同时替换原始的 < 和 > 为占位符（处理未转义的情况）
+            text_content = text_content.replace('<', '__LT__').replace('>', '__GT__')
             processed = process_formula_content(text_content)
             if processed:
                 return f'<span style="font-family: \'Times New Roman\', serif; font-style: italic; white-space: nowrap;">{processed}</span>'

@@ -3,3 +3,4 @@ html
 nohup.out
 _build
 .DS_Store
+__pycache__/sphinx_to_wechat.cpython-312.pyc
