@@ -21,6 +21,8 @@ extensions = [
     # 'sphinxcontrib.images'
 ]
 
+myst_fence_as_directive = ["mermaid"]
+
 myst_enable_extensions = [
     'amsmath',
     'dollarmath',
