@@ -5,7 +5,6 @@
    :maxdepth: 2
    :caption: 深度学习笔记
    :name: 深度学习笔记
-   .. :numbered:
 
    开源模型
    深度学习模型编译
