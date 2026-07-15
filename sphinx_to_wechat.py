@@ -528,9 +528,9 @@ def fix_pre_blocks(html_content: str) -> str:
     def fix_pre_content(match):
         full_match = match.group(0)
         opening_tag_match = re.match(r'<pre[^>]*>', full_match)
-        opening_tag = opening_tag_match.group(0)
+        original_opening_tag = opening_tag_match.group(0)
         closing_tag = '</pre>'
-        inner = full_match[len(opening_tag):-len(closing_tag)]
+        inner = full_match[len(original_opening_tag):-len(closing_tag)]
 
         lines = inner.split('\n')
 
@@ -581,7 +581,23 @@ def fix_pre_blocks(html_content: str) -> str:
         # 每行用 <span> 包裹，末尾加 <br>
         inner_fixed = '<br>'.join(f'<span>{line}</span>' for line in fixed_lines)
 
-        return opening_tag + inner_fixed + closing_tag
+        # 为 <pre> 标签添加内联样式，强制换行
+        # 同时添加代码块样式（背景色、字体等），使其在公众号中更美观
+        pre_style = ' style="white-space: pre-wrap; word-break: break-all; overflow-wrap: break-word; background-color: #f6f8fa; padding: 16px; border-radius: 6px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 14px; line-height: 1.6;"'
+        
+        # 检查是否已有 style 属性
+        if 'style=' in original_opening_tag:
+            # 如果已有 style，替换或追加
+            new_opening_tag = re.sub(
+                r'style="[^"]*"',
+                pre_style,
+                original_opening_tag
+            )
+        else:
+            # 如果没有 style，添加
+            new_opening_tag = original_opening_tag.replace('>', pre_style + '>')
+
+        return new_opening_tag + inner_fixed + closing_tag
 
     return re.sub(r'<pre[^>]*>.*?</pre>', fix_pre_content, html_content, flags=re.DOTALL)
 
