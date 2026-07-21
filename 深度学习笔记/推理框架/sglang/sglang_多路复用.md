@@ -1,8 +1,7 @@
 # SGLang 多路复用详解
 
-> 本文档基于 `python/sglang/srt/managers/` 源码，详细介绍 SGLang 的**多路复用（Multiplexing）**机制：单个 SGLang 服务如何在一套通信通道上同时服务成百上千个并发请求/会话。
->
-> 相关文档：多轮对话如何跨请求复用历史 KV，见 `SGLang_会话管理详解.md`。多路复用是"空间维度"上的复用（跨请求），会话管理是"时间维度"上的复用（跨轮次），二者正交、可同时生效。
+> 本文档基于 `python/sglang/srt/managers/` 源码，详细介绍 SGLang 的 **多路复用（Multiplexing）** 机制：单个 SGLang 服务如何在一套通信通道上同时服务成百上千个并发请求/会话。
+
 
 ---
 

@@ -6,8 +6,8 @@
   1. 代码块：浏览器渲染 <pre> 时靠 CSS white-space:pre 保留换行，但复制粘贴到微信公众号
      编辑器后 CSS 丢失，\n 被当作普通空白折叠。解决方法是在每行末尾补 <br>。
      由于浏览器在 white-space:pre 下会忽略 <br>，所以本地预览效果不受影响。
-  2. 公式：MathJax 渲染的公式包含复杂的 <span> 标签结构，复制到微信公众号时会丢失。
-     需要将公式包裹在特殊结构中，确保复制时保留公式内容。
+  2. 公式：保留原始 LaTeX，由 MathJax 渲染为自包含 SVG，再在浏览器中栅格化为
+     PNG 图片。复制到微信公众号编辑器时，复杂公式的排版不会丢失。
 
 用法：
     make html && python sphinx_to_wechat.py
@@ -20,37 +20,50 @@ import argparse
 import re
 from pathlib import Path
 
-# 测试用的公式HTML示例
+# WaveNet 文档中有代表性的公式，用来确保后处理不会再破坏原始 LaTeX。
 TEST_FORMULAS = [
-    # MathJax 3+ 格式
-    '<mjx-container data-latex="E=mc^2"><mjx-math><mjx-msup><mjx-mi>E</mjx-mi><mjx-mn>2</mjx-mn></mjx-msup></mjx-math></mjx-container>',
-    # 传统 math 类格式（inline）- 来自实际HTML
-    r'<span class="math notranslate nohighlight">\(A_\text{c} = (\pi/4) d^2\)</span>',
-    # display 格式 - 来自实际HTML
-    r'<div class="math notranslate nohighlight">\[\alpha _t(i) = P(O_1, O_2, \ldots  O_t, q_t = S_i \lambda )\]</div>',
-    # 简单 inline 格式
-    r'<span class="math inline">\(E=mc^2\)</span>',
-    # 简单 display 格式
-    r'<div class="math display">\[\int_0^\infty e^{-x} dx\]</div>',
+    r"\(\mathbf{x} = (x_1, x_2, \ldots, x_T)\)",
+    r"\[p(\mathbf{x}) = \prod_{t=1}^{T} p(x_t \mid x_{<t})\]",
+    r"\[F(x)=\operatorname{sgn}(x)\cdot\frac{\ln(1+\mu |x|)}{\ln(1+\mu)}\]",
+    r"\[\mathbf{z}=\tanh(W_f * \mathbf{x})\odot\sigma(W_g * \mathbf{x})\]",
+    r"\(\mathcal{L}_{\text{NLL}}\)",
 ]
 
 
 def test_formula_processing():
     """测试公式处理功能。"""
-    print("测试公式处理功能：")
-    success_count = 0
-    for i, formula in enumerate(TEST_FORMULAS, 1):
-        print(f"\n测试用例 {i}:")
-        print(f"原始: {formula[:100]}..." if len(formula) > 100 else f"原始: {formula}")
-        result = fix_math_blocks(formula)
-        print(f"处理后: {result}")
-        # 检查是否成功提取了公式内容（结果应该是span标签包裹的公式）
-        if '<span style="font-family:' in result and 'Times New Roman' in result:
-            print("✓ 处理成功")
-            success_count += 1
-        else:
-            print("✗ 处理失败")
-    print(f"\n总计: {success_count}/{len(TEST_FORMULAS)} 测试用例通过")
+    formula_html = "\n".join(
+        f'<div class="math notranslate nohighlight">{formula}</div>'
+        for formula in TEST_FORMULAS
+    )
+    original = (
+        "<html><head>"
+        '<script>window.MathJax = {"options": {"processHtmlClass": "math"}}</script>'
+        '<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/'
+        'tex-mml-chtml.js"></script>'
+        f"</head><body>{formula_html}</body></html>"
+    )
+
+    result = fix_math_blocks(original)
+    repeated = fix_math_blocks(result)
+
+    checks = {
+        "保留所有原始 LaTeX": all(formula in result for formula in TEST_FORMULAS),
+        "切换到 MathJax SVG": "tex-mml-svg.js" in result,
+        "启用本地字体缓存": 'fontCache: "local"' in result,
+        "注入 PNG 转换器": MATH_IMAGE_CONVERTER_MARKER in result,
+        "设置微信公式图片标记": "data-wechat-math-image" in result,
+        "处理过程幂等": repeated == result,
+        "不再生成 Unicode 近似公式": "Times New Roman" not in result,
+    }
+
+    for description, passed in checks.items():
+        print(f"{'✓' if passed else '✗'} {description}")
+
+    failed = [description for description, passed in checks.items() if not passed]
+    if failed:
+        raise AssertionError("公式处理测试失败：" + "、".join(failed))
+    print(f"\n全部 {len(checks)} 项公式处理测试通过")
 
 
 # LaTeX符号到Unicode数学字符的映射
@@ -269,8 +282,8 @@ def subscript_text(text):
     return ''.join(result)
 
 
-def fix_math_blocks(html_content: str) -> str:
-    """处理 MathJax 公式，使其能正确复制到微信公众号编辑器。"""
+def _legacy_unicode_math_conversion(html_content: str) -> str:
+    """旧版 LaTeX 到 Unicode 转换，保留仅供历史行为参考。"""
     
     def process_formula_content(formula_text):
         """处理公式内容：移除环境声明、转换LaTeX到Unicode。"""
@@ -520,6 +533,151 @@ def fix_math_blocks(html_content: str) -> str:
     html_content = re.sub(r'<span\s+style="[^"]*Times New Roman[^"]*">.*?</span>', process_existing_math_span, html_content, flags=re.DOTALL)
     
     return html_content
+
+
+MATH_IMAGE_CONVERTER_MARKER = 'id="wechat-math-image-converter"'
+
+MATHJAX_SVG_CONFIG = """<script id="wechat-mathjax-svg-config">
+window.MathJax = window.MathJax || {};
+window.MathJax.svg = Object.assign({}, window.MathJax.svg, {fontCache: "local"});
+</script>
+"""
+
+MATH_IMAGE_CONVERTER = r"""<script id="wechat-math-image-converter">
+(function () {
+  "use strict";
+
+  const SCALE = 3;
+
+  function svgToPng(svg, scale) {
+    return new Promise((resolve, reject) => {
+      const rect = svg.getBoundingClientRect();
+      const width = Math.max(rect.width, 1);
+      const height = Math.max(rect.height, 1);
+      const clone = svg.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("width", width + "px");
+      clone.setAttribute("height", height + "px");
+
+      const source = new XMLSerializer().serializeToString(clone);
+      const blob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+      const objectUrl = URL.createObjectURL(blob);
+      const sourceImage = new Image();
+
+      sourceImage.onload = function () {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(width * scale);
+          canvas.height = Math.ceil(height * scale);
+          const context = canvas.getContext("2d");
+          context.scale(scale, scale);
+          context.drawImage(sourceImage, 0, 0, width, height);
+          resolve({
+            dataUrl: canvas.toDataURL("image/png"),
+            width: width,
+            height: height
+          });
+        } catch (error) {
+          reject(error);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
+      sourceImage.onerror = function () {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("无法将 MathJax SVG 转换为图片"));
+      };
+      sourceImage.src = objectUrl;
+    });
+  }
+
+  async function convertMathToImages() {
+    if (!window.MathJax || !window.MathJax.startup) {
+      console.warn("MathJax 未加载，公式图片转换已跳过");
+      return;
+    }
+
+    await window.MathJax.startup.promise;
+    const containers = Array.from(document.querySelectorAll("mjx-container"));
+
+    await Promise.all(containers.map(async (container) => {
+      const svg = container.querySelector("svg");
+      if (!svg) {
+        return;
+      }
+
+      const isDisplay = container.getAttribute("display") === "true";
+      const rendered = await svgToPng(svg, SCALE);
+      const image = document.createElement("img");
+      image.src = rendered.dataUrl;
+      image.alt = container.getAttribute("aria-label") || "数学公式";
+      image.setAttribute("data-wechat-math-image", "true");
+      image.style.width = rendered.width + "px";
+      image.style.height = rendered.height + "px";
+      image.style.maxWidth = "100%";
+      image.style.objectFit = "contain";
+
+      if (isDisplay) {
+        image.style.display = "block";
+        image.style.margin = "0.6em auto";
+      } else {
+        image.style.display = "inline-block";
+        image.style.margin = "0 0.08em";
+        image.style.verticalAlign = "-0.2em";
+      }
+
+      container.replaceWith(image);
+    }));
+
+    document.documentElement.setAttribute("data-wechat-math-ready", "true");
+  }
+
+  window.addEventListener("load", function () {
+    convertMathToImages().catch((error) => {
+      console.error("微信公众号公式转换失败", error);
+    });
+  });
+})();
+</script>
+"""
+
+
+def fix_math_blocks(html_content: str) -> str:
+    """保留 LaTeX，并注入 MathJax SVG 转 PNG 的浏览器端转换逻辑。
+
+    微信公众号编辑器会移除 MathJax 依赖的脚本和 CSS，但可以接收从网页复制的
+    PNG 图片。公式先由 MathJax 精确排版，再转成内嵌 PNG，因此分式、上下标、
+    粗体向量和大型运算符都能保持原样。
+    """
+    if MATH_IMAGE_CONVERTER_MARKER in html_content:
+        return html_content
+
+    # SVG 输出能完整保留公式结构，并可直接绘制到 Canvas。local 字体缓存使每个
+    # SVG 都自包含，避免栅格化时引用页面外部的 MathJax 字形定义。
+    html_content = html_content.replace(
+        "tex-mml-chtml.js",
+        "tex-mml-svg.js",
+    )
+
+    mathjax_loader = re.search(
+        r'<script\b[^>]*src="[^"]*mathjax[^"]*tex-mml-svg\.js"[^>]*></script>',
+        html_content,
+        flags=re.IGNORECASE,
+    )
+    if mathjax_loader:
+        html_content = (
+            html_content[:mathjax_loader.start()]
+            + MATHJAX_SVG_CONFIG
+            + html_content[mathjax_loader.start():]
+        )
+
+    if "</body>" in html_content:
+        return html_content.replace(
+            "</body>",
+            MATH_IMAGE_CONVERTER + "\n</body>",
+            1,
+        )
+    return html_content + "\n" + MATH_IMAGE_CONVERTER
 
 
 def fix_pre_blocks(html_content: str) -> str:
