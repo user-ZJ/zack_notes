@@ -3,9 +3,9 @@
 后处理脚本：修复 Sphinx 生成的 HTML 中代码块换行符和公式，使其兼容微信公众号编辑器。
 
 原理：
-  1. 代码块：浏览器渲染 <pre> 时靠 CSS white-space:pre 保留换行，但复制粘贴到微信公众号
-     编辑器后 CSS 丢失，\n 被当作普通空白折叠。解决方法是在每行末尾补 <br>。
-     由于浏览器在 white-space:pre 下会忽略 <br>，所以本地预览效果不受影响。
+  1. 代码块：浏览器渲染 <pre> 时靠 CSS white-space:pre 保留换行，但复制到微信公众号
+     编辑器后 <pre> 和 white-space 会被丢掉，整段挤成一行。解决方法是把 <pre>
+     改成微信可识别的 <section>，每一行单独用 <p> 包住。
   2. 公式：保留原始 LaTeX，由 MathJax 渲染为自包含 SVG，再在浏览器中栅格化为
      PNG 图片。复制到微信公众号编辑器时，复杂公式的排版不会丢失。
 
@@ -64,6 +64,44 @@ def test_formula_processing():
     if failed:
         raise AssertionError("公式处理测试失败：" + "、".join(failed))
     print(f"\n全部 {len(checks)} 项公式处理测试通过")
+
+
+# WaveGlow 2.2 节这类纯文本流程图，复制到微信后最容易丢换行。
+TEST_PRE_HTML = """
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>文本
+  ↓
+文本前端（规范化、音素、韵律）
+  ↓
+WaveGlow 声码器
+  ↓
+原始音频波形
+</pre></div>
+</div>
+"""
+
+
+def test_pre_block_processing():
+    """测试代码块换行在微信公众号复制场景下是否被显式保留。"""
+    result = fix_pre_blocks(TEST_PRE_HTML)
+    repeated = fix_pre_blocks(result)
+
+    checks = {
+        "不再使用 pre 标签": "<pre" not in result,
+        "改用 section 作为代码块容器": 'data-wechat-code="true"' in result,
+        "每一行都是独立段落": result.count("<p ") >= 7,
+        "保留箭头行": "↓" in result,
+        "行首缩进转为不间断空格": "&nbsp;&nbsp;↓" in result,
+        "处理过程幂等": repeated == result,
+        "没有把整段挤进一行": "</p><p " in result.replace("\n", ""),
+    }
+
+    for description, passed in checks.items():
+        print(f"{'✓' if passed else '✗'} {description}")
+
+    failed = [description for description, passed in checks.items() if not passed]
+    if failed:
+        raise AssertionError("代码块处理测试失败：" + "、".join(failed))
+    print(f"\n全部 {len(checks)} 项代码块处理测试通过")
 
 
 # LaTeX符号到Unicode数学字符的映射
@@ -680,84 +718,82 @@ def fix_math_blocks(html_content: str) -> str:
     return html_content + "\n" + MATH_IMAGE_CONVERTER
 
 
+WECHAT_CODE_BLOCK_STYLE = (
+    "margin: 12px 0; padding: 16px; background-color: #f6f8fa; "
+    "border-radius: 6px; font-family: Consolas, Monaco, 'Courier New', monospace; "
+    "font-size: 14px; line-height: 1.6; overflow-wrap: break-word; word-break: break-all;"
+)
+WECHAT_CODE_LINE_STYLE = "margin: 0; padding: 0; line-height: 1.6;"
+
+
+def _nbsp_leading_spaces(line: str) -> str:
+    """把行首空格换成 &nbsp;，避免微信折叠缩进。"""
+    leading_spaces = ""
+    i = 0
+    while i < len(line):
+        if line[i] == " ":
+            leading_spaces += " "
+            i += 1
+        elif line[i:i + 6] == "&nbsp;":
+            i += 6
+        else:
+            break
+    if leading_spaces:
+        return "&nbsp;" * len(leading_spaces) + line[len(leading_spaces):]
+    return line
+
+
+def _normalize_pre_line(line: str) -> str:
+    """清洗 Pygments / 旧版后处理留下的标签，并保留缩进。"""
+    line = re.sub(
+        r'<span class="w">([^<]*)</span>',
+        lambda m: m.group(1).replace(" ", "&nbsp;"),
+        line,
+    )
+    line = re.sub(r"^<span></span>", "", line)
+    line = re.sub(r"^<span>(.*)</span>$", r"\1", line, flags=re.DOTALL)
+    return _nbsp_leading_spaces(line)
+
+
 def fix_pre_blocks(html_content: str) -> str:
-    """在 <pre> 块内插入换行和缩进，使其兼容微信公众号编辑器。"""
+    """把 <pre> 转成微信公众号可复制的代码块。
+
+    微信编辑器会丢掉 <pre> 和 white-space:pre，只保留纯文本，于是换行消失。
+    改成 <section> 包一层，每一行单独一个 <p>，复制后仍按行显示。
+    """
 
     def fix_pre_content(match):
         full_match = match.group(0)
-        opening_tag_match = re.match(r'<pre[^>]*>', full_match)
-        original_opening_tag = opening_tag_match.group(0)
-        closing_tag = '</pre>'
-        inner = full_match[len(original_opening_tag):-len(closing_tag)]
+        if 'data-wechat-code="true"' in full_match:
+            return full_match
 
-        lines = inner.split('\n')
+        opening_tag_match = re.match(r"<pre[^>]*>", full_match)
+        inner = full_match[len(opening_tag_match.group(0)):-len("</pre>")]
 
-        fixed_lines = []
-        for line in lines:
-            # 处理 <span class="w"> 标签 - 将其内容提取出来（去掉标签）
-            # 微信公众号编辑器无法正确处理带标签的缩进
-            def replace_span_w(m):
-                span_content = m.group(1)
-                # 将普通空格替换为 &nbsp;，然后移除 <span class="w"> 标签
-                span_content = span_content.replace(' ', '&nbsp;')
-                return span_content
-            
-            line = re.sub(
-                r'<span class="w">([^<]*)</span>',
-                replace_span_w,
-                line
-            )
-            
-            # 处理行首裸空格（不在任何标签内的空格）
-            # 需要找到第一个非空格字符的位置
-            leading_spaces = ''
-            i = 0
-            while i < len(line):
-                if line[i] == ' ':
-                    leading_spaces += ' '
-                    i += 1
-                elif line[i:i+6] == '&nbsp;':
-                    # 已经是 &nbsp;，跳过
-                    i += 6
-                elif line[i] == '<':
-                    # 遇到标签，停止
-                    break
-                else:
-                    # 遇到其他字符，停止
-                    break
-            
-            if leading_spaces:
-                line = '&nbsp;' * len(leading_spaces) + line[len(leading_spaces):]
-            
-            fixed_lines.append(line)
-
-        # 过滤掉末尾的空行
-        while fixed_lines and fixed_lines[-1] == '':
-            fixed_lines.pop()
-        
-        # 使用 <span> 标签配合 <br> 换行，避免 <p> 标签产生的额外段落间距
-        # 每行用 <span> 包裹，末尾加 <br>
-        inner_fixed = '<br>'.join(f'<span>{line}</span>' for line in fixed_lines)
-
-        # 为 <pre> 标签添加内联样式，强制换行
-        # 同时添加代码块样式（背景色、字体等），使其在公众号中更美观
-        pre_style = ' style="white-space: pre-wrap; word-break: break-all; overflow-wrap: break-word; background-color: #f6f8fa; padding: 16px; border-radius: 6px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 14px; line-height: 1.6;"'
-        
-        # 检查是否已有 style 属性
-        if 'style=' in original_opening_tag:
-            # 如果已有 style，替换或追加
-            new_opening_tag = re.sub(
-                r'style="[^"]*"',
-                pre_style,
-                original_opening_tag
-            )
+        if re.search(r"<br\s*/?>", inner):
+            raw_lines = re.split(r"<br\s*/?>", inner)
         else:
-            # 如果没有 style，添加
-            new_opening_tag = original_opening_tag.replace('>', pre_style + '>')
+            raw_lines = inner.split("\n")
 
-        return new_opening_tag + inner_fixed + closing_tag
+        fixed_lines = [_normalize_pre_line(line) for line in raw_lines]
+        while fixed_lines and not fixed_lines[-1].strip():
+            fixed_lines.pop()
+        while fixed_lines and not fixed_lines[0].strip():
+            fixed_lines.pop(0)
 
-    return re.sub(r'<pre[^>]*>.*?</pre>', fix_pre_content, html_content, flags=re.DOTALL)
+        if not fixed_lines:
+            return full_match
+
+        line_html = "".join(
+            f'<p style="{WECHAT_CODE_LINE_STYLE}">{line if line else "&nbsp;"}</p>'
+            for line in fixed_lines
+        )
+        return (
+            f'<section data-wechat-code="true" style="{WECHAT_CODE_BLOCK_STYLE}">'
+            f"{line_html}</section>"
+        )
+
+    return re.sub(r"<pre[^>]*>.*?</pre>", fix_pre_content, html_content, flags=re.DOTALL)
 
 
 def process_directory(build_dir: Path):
@@ -784,6 +820,7 @@ def main():
 
     if args.test:
         test_formula_processing()
+        test_pre_block_processing()
         return
 
     build_dir = Path(args.build_dir)
