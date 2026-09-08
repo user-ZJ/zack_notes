@@ -1,7 +1,5 @@
 # CosyVoice 完整介绍
 
-> 本文综合《CosyVoice 语音大模型发展历程与应用调研》与《CosyVoice模型发展与语音应用》两份资料整理而成，系统介绍 CosyVoice 的技术定位、版本演进、模型架构、性能表现、应用场景、竞品对比、部署生态与选型建议。若无特别说明，技术架构与评测数字以官方论文及 FunAudioLLM/CosyVoice 仓库为准；Fun-CosyVoice3.5 与场景案例主要来自应用调研材料。
-
 ---
 
 ## 1. 概述
@@ -66,7 +64,7 @@ CosyVoice 擅长：
 
 2024 年 7 月开源 CosyVoice 1.0（300M），论文为 *CosyVoice: A Scalable Multilingual Zero-shot Text-to-speech Synthesizer based on Supervised Semantic Tokens*（arXiv 2407.05407）。
 
-核心贡献是把**监督语义语音 token（Supervised Semantic Speech tokens, S³）**引入 TTS：在多语种 ASR 编码器中间插入矢量量化（Vector Quantization, VQ）瓶颈，用 CTC / ASR 损失端到端训练，使离散 token 携带显式语义并与文本对齐。系统采用 **LLM（文本 → token）+ 条件流匹配（token → 频谱）+ HiFi-GAN 类声码器（频谱 → 波形）**，无需单独的音素时长预测，约 3 秒参考音频即可零样本克隆。
+核心贡献是把 **监督语义语音 token（Supervised Semantic Speech tokens, S³）** 引入 TTS：在多语种 ASR 编码器中间插入矢量量化（Vector Quantization, VQ）瓶颈，用 CTC / ASR 损失端到端训练，使离散 token 携带显式语义并与文本对齐。系统采用 **LLM（文本 → token）+ 条件流匹配（token → 频谱）+ HiFi-GAN 类声码器（频谱 → 波形）**，无需单独的音素时长预测，约 3 秒参考音频即可零样本克隆。
 
 骨干是自研 TransformerLM（300M），不是后来的 Qwen2。语言覆盖中、英、日、粤、韩。流匹配为非因果的 MaskedDiffWithXvec，流式能力受限。
 
@@ -153,17 +151,91 @@ flowchart LR
 
 传统 LLM-TTS 的无监督 token 压缩了声学，语义却飘。CosyVoice 1.0 在多语 ASR 编码器中间加 VQ（单码本 4096 项），用识别损失监督量化，得到与文本对齐的 S³ token。
 
-效果直接落在两头：内容更一致（少漏读、错读），音色更稳（克隆不像“会说话的别人”）。这也是后续扩数据、扩语种仍能保持可训练性的前提。S³ 是 1.0 的立身点，不是 3.0 才出现的技术。
+效果直接落在两头：内容更一致（少漏读、错读），音色更稳（克隆不像“会说话的别人”）。这也是后续扩数据、扩语种仍能保持可训练性的前提。S³ 是 1.0 的立身点，不是 3.0 才出现的技术。下面按 1.0 → 2.0 → 3.0 写清 **tokenizer 自己怎么训**；LLM 如何自回归写出这些 token，见 4.1 与 4.6，不并进本节。
+
+**训练目标：为什么用识别损失，而不是纯重建。** HuBERT 一类自监督（Self-Supervised Learning, SSL）token 靠聚类或掩码预测压声学；EnCodec / SoundStream 一类神经编解码器靠波形或频谱重建，常配合 RVQ。两者都能得到离散索引，但不保证索引和文本同一套语义。结果是 LLM 要在“语义发飘的码本”上做 next-token，漏读、错读和音色漂都更常见。
+
+S³ 把量化层做成 ASR 的信息瓶颈：量化后的表征必须仍能认出字，码本才会被识别损失拉向音素 / 字词内容，而不是只记住频谱细节。1.0 论文对照了同一套 CosyVoice 骨架上的 HuBERT 与 S³：换监督 token 后，内容一致性明显更好，说话人相似度几乎不动——说明监督主要改的是“token 里有没有字”，不是“像不像这个人”。3.0 在下游零样本 TTS 上继续对照：SoundStream 只取第一组 VQ 时，各测试集错误率都明显高于监督 token；HuBERT 在中文 test-zh 上尤其弱。声学重建 token 既不学上下文、也不对文本，语义不够用。
+
+监督的代价是量化会伤一点上游识别。1.0 在 LibriTTS 上，Conformer 插入 VQ 后 test-clean / test-other 的 WER 从 2.89% / 6.57% 升到 3.18% / 7.56%，降幅有限，作者据此认为离散 token 仍保住了足够语义。这是“为 TTS 牺牲一点点 ASR、换来可对齐码本”，不是把 tokenizer 训成更好的识别器。
+
+**整体结构与前向。** 三代共用同一模板：**语音编码器前半段 + 量化瓶颈 + 编码器后半段与任务头**。后半段和任务头只在训 tokenizer 时存在（论文图中的虚线模块），推理抽 token 时丢掉。
+
+```mermaid
+flowchart TB
+    feat["梅尔频谱 / 语音特征 X"] --> enc1["Encoder1（量化前）"]
+    enc1 --> H["连续表征 H"]
+    H --> quant["量化瓶颈：1.0 为 VQ，2.0/3.0 为 FSQ"]
+    quant --> mu["离散 token 索引 μ"]
+    quant --> qH["量化后表征"]
+    qH --> enc2["Encoder2 + 任务头（仅训练）"]
+    enc2 --> asr["文本后验 / 多任务标签"]
+```
+
+1.0 的前向写得很具体。输入是梅尔频谱 $X$，先位置编码再过 $\mathrm{Encoder}_1$，得到逐帧连续表征 $H$。对第 $l$ 帧 $\mathbf{h}_l$，在码本 $C$ 里取 L2 最近邻，索引就是该帧的语音 token：
+
+$$\mu_l=\mathrm{VQ}(\mathbf{h}_l,C)=\arg\min_{\mathbf{c}_n\in C}\|\mathbf{h}_l-\mathbf{c}_n\|_2$$
+
+量化后的嵌入 $\bar{H}=\{\mathbf{c}_{\mu_1},\ldots,\mathbf{c}_{\mu_L}\}$ 再加一次位置编码，送进 $\mathrm{Encoder}_2$，最后接 Transformer ASR 解码器，在 teacher-forcing 下预测文本后验 $P(Y|X)$。概述里常把这步写成“CTC / ASR 损失”；1.0 论文正文用的是 **Transformer 解码器 + 左移文本标签的交叉熵**，没有单独写连接时序分类（Connectionist Temporal Classification, CTC）项。2.0 / 3.0 同样是量化后再走剩余编码器，用文本（及 3.0 的多任务标签）后验当监督。
+
+输入输出可以记成一条链：波形先抽成特征（1.0 写明为梅尔）→ $\mathrm{Encoder}_1$ 得到连续 $H$ → 量化得到整数索引 $\mu$ 与可反传的量化表征 → 训练时用 $\mu$ 对应的嵌入（或 FSQ 反投影）去完成识别。推理时只保留 $\mathrm{Encoder}_1$ + 量化 + 索引计算，输出就是给 LLM / 流匹配用的离散序列。
+
+帧率决定这条序列有多长。仓库与 DeepWiki 将 1.0 记为 50Hz（每秒 50 个 token；2024-09 另发 25Hz 基础版）；1.0 论文未写帧率。2.0 / 3.0 论文写明 tokenizer 为 **25Hz**，而 2.0 的梅尔仍是 50Hz、24kHz 采样，流匹配前要把 token 上采样 2 倍才能对齐频谱。3.5 应用材料把帧率再降到 **12.5Hz**。同一段 10 秒语音，50 / 25 / 12.5Hz 分别对应约 500 / 250 / 125 个 token：LLM 要写的步数、首包要等的步数都按这个比例缩。帧率减半是延迟结构，不是换一套监督目标。
+
+**1.0：VQ 插在哪、损失怎么回。** 小规模单语实验用 ESPNet Conformer ASR，大规模多语用 SenseVoice-Large。两种设定都把 **单码本 VQ（4096 项）插在前 6 层编码器之后**；插入层数和码本大小的消融，论文留作未来工作，没有第二组官方数字。小规模在 Librispeech 上从零训 50 个 epoch；大规模用 SenseVoice-Large 预训练权重初始化，插入量化器后 **整网微调 210,000 step，8 张 A800**。大规模 tokenizer 用了多少小时，论文未单列——1.0 论文 Table 2 的中 / 英 / 粤 / 日 / 韩小时表是合成模型的数据，不是 tokenizer 自己的课时。
+
+码本更新走指数滑动平均（Exponential Moving Average, EMA）：
+
+$$\mathbf{c}_{\mu_l}:=\alpha\mathbf{c}_{\mu_l}+(1-\alpha)\mathbf{h}_l$$
+
+$\alpha$ 是预设衰减系数。论文没有再写 VQ-VAE 式的 codebook / commitment 损失；能核对的监督就是 ASR 解码器的文本交叉熵，外加这套 EMA。量化层插在编码器中部，而不是最后一层，是为了让 $\mathrm{Encoder}_2$ 还能在离散索引之上做上下文整合，同时保证抽 token 时只跑前 6 层 + VQ，推理够短。
+
+**2.0：FSQ 相对 VQ 改了训练的哪几处。** 2.0 仍把量化器插进 SenseVoice-Large，但 $\mathrm{Encoder}_1$ 改成 **6 个带旋转位置编码（Rotary Positional Embedding, RoPE）的 Transformer 块**，VQ 换成 FSQ。FSQ 没有一张需要竞争更新的可学习码本：先把 $H$ 投影到 $D$ 维，各维有界取整到 $[-K,K]$，再投影回原维度；训练用直通估计（Straight-Through Estimation, STE）近似 FSQ 与 $\mathrm{Encoder}_1$ 的梯度。token 索引是量化后低维向量在 $(2K+1)$ 进制下的编码：
+
+$$\mu_i=\sum_{j=0}^{D-1}\bar{h}_{i,j}\,(2K+1)^{j}$$
+
+公式里的 $K$、$D$ 论文未分开公布。对照实验给出的是：**VQ 码本 4096，实际用到 963 项（约 23%）；FSQ 码本 6,561，利用率 100%**。同一套 SenseVoice 编码器上，FSQ 的 CommonVoice / FLEURS 识别错误率也低于 VQ。这就是“替换 RVQ / VQ、减轻坍塌”在训练上的具体含义：1.0 用的是单码本 VQ 而不是多码本 RVQ；2.0 要避开的是 VQ 那种少数码字吃掉梯度、其余码字死掉的问题。FSQ 的隐式组合码本不靠 EMA 抢中心，因此也不再需要 commitment 项。
+
+tokenizer 训练数据约 **20 万小时、带规范化转写**，来源含开源 ASR、工业内部和 TTS 合成数据，小时数是中文 110,884 + 英文 99,918。只用中英训，但论文报告对日、韩等语种有零样本可用性。t-SNE 上，量化前 $\mathrm{Encoder}_1$ 输出仍按说话人分簇，量化后几乎分不开；用量化后 token 做说话人识别（Speaker Identification, SID）也训不收敛。监督 ASR 把内容推进 token，量化则把音色往外推，后面的条件流匹配再靠参考梅尔和说话人嵌入把声线补回来。
+
+**3.0：MinMo 多任务如何把情感 / 口音 / 风格写进 token。** 3.0 把底座从 SenseVoice-Large 换成 MinMo（通义多模态语音理解模型，训练数据超过 140 万小时）。FSQ 插在 MinMo 的 **Voice Encoder** 里：$\mathrm{Voice\ Encoder}_1$ 为 **12 个带 RoPE 的 Transformer 块**，量化后再走 $\mathrm{Voice\ Encoder}_2$ 与 MinMo LLM，预测对应标签的后验。帧率仍是 25Hz。Voice Encoder 总层数、各任务是独立分类头还是统一由 LLM 以文本形式输出、损失怎么加权，论文都未细述。
+
+多任务数据是 MinMo 训练子集里约 **53 万小时**（论文写作 530,000 hour），任务与小时数以 3.0 论文 Table 3 为准，见 4.4。多语 ASR 覆盖中、英、日、韩、俄、法、德；西、意未进 tokenizer 的 ASR 集，但作者称监督 tokenizer 对未见语种仍可用。联合训练的作用可以按任务读：ASR 继续锁内容；语种识别（Language Identification, LID）让索引区分语种与口音条件；语音情感识别（Speech Emotion Recognition, SER）和音频事件检测（Audio Event Detection, AED）逼迫瓶颈留下情绪、笑声、呼吸等副语言；说话人分析（Speaker Analysis, SA）则提供显式的说话人侧监督，便于把音色从语义里分开，而不是把声线编进 LLM 要模仿的内容码。
+
+没有单独的“情感码本”或“风格层”。情感和风格能进 token，是因为 **同一串 FSQ 索引必须同时支撑这些后验**——离散序列变成多任务的充分统计量，LLM 稍后预测的就是这串更“满”的索引，流匹配再把它渲染成带情绪的频谱。AIR-Bench 上，FSQ-MinMo 相对未量化 MinMo：LID 同为 99.2，Emotion 从 62.4 升到 68.4，Gender / Age / Vocal Sound 明显下降。量化后语种和情绪还在，部分说话人属性被削掉，和 2.0“token 尽量与说话人解耦”一致。上游识别上，FSQ-MinMo 在 FLEURS 中文上优于原 MinMo，CommonVoice 英 / 中则略差于 FSQ-SenseVoice；作者强调 FSQ-MinMo 只保留语音相关任务。3.0 论文 Table 12 固定 LLM + CFM 结构、只换 tokenizer，并分别在 3,000 与 170,000 小时的**合成模型**数据上训：监督 token 仍明显好于 HuBERT / W2v-BERT / SoundStream；扩到 17 万小时后中英与困难集再降一截。这是 0.5B 消融，不要和论文 1.5B 主结果、也不要和 tokenizer 自己的 53 万小时混读。
+
+三代 tokenizer 训练可以收成一张表：
+
+| 维度 | CosyVoice 1.0 | CosyVoice 2.0 | Fun-CosyVoice 3.0 |
+|------|---------------|---------------|-------------------|
+| 编码器底座 | Conformer（小规模）/ SenseVoice-Large（大规模） | SenseVoice-Large | MinMo Voice Encoder |
+| 量化 | 单码本 VQ，4096 项，EMA | FSQ，码本 6,561，STE | 同 2.0 的 FSQ 公式；3.0 论文未重报 $K$、$D$ |
+| 插入位置 | 前 6 层编码器之后 | $\mathrm{Encoder}_1$：6 层 Transformer + RoPE | $\mathrm{Voice\ Encoder}_1$：12 层 Transformer + RoPE |
+| 训练时任务头 | Transformer ASR 解码器 | $\mathrm{Encoder}_2$ + ASR Decoder | $\mathrm{Voice\ Encoder}_2$ + MinMo LLM |
+| 监督信号 | 转写文本（teacher-forcing 交叉熵） | 规范化转写 | ASR + LID + SER + AED + SA |
+| tokenizer 数据 | 小规模：Librispeech；大规模：未报小时 | 约 20 万小时（中 110,884 + 英 99,918） | 约 53 万小时（Table 3） |
+| 推理帧率 | 仓库 / DeepWiki：50Hz；后有 25Hz 基础版 | 25Hz | 25Hz（3.5 应用材料为 12.5Hz） |
+
+**训完之后冻结，再交给 LLM 和流匹配。** tokenizer 是独立的第一阶段。图中虚线模块（1.0 / 2.0 的 $\mathrm{Encoder}_2$ + ASR 解码器，3.0 的 $\mathrm{Voice\ Encoder}_2$ + MinMo LLM）训完即弃，留下 $\mathrm{Encoder}_1$ + 量化器当特征提取器。之后用冻结的 tokenizer 把训练集语音打成 $\mu$，再分别训：
+
+1. **文本→token 的 LLM**：交叉熵只打在语音 token（及结束符）上，不回传 tokenizer；
+2. **token→梅尔的条件流匹配**，再接预训练 HiFT 声码器。
+
+3.0 论文把生成模型写成：大规模预训练 → 后训练（DiffRO 等）→ 持续预训练 → 多说话人微调。后训练优化的是 LLM（或 3.5 的流匹配），不是重新训码本。2.0 甚至把 tokenizer 的 ASR 后端冻住，把 token 反解回低维表征再算识别后验，当作 LLM 的奖励——那是生成模型阶段，前提仍是 tokenizer 已经定死。开源仓库提供的 `speech_tokenizer_v1/v2/v3.onnx` 就是这一冻结产物；自训 LLM / 流匹配时把它当离线标注器，而不是和 LLM 联合反传。
+
+论文没有公开 tokenizer 与 LLM 是否做过端到端联合微调。按正文和图例，能确定的是：**先训 tokenizer，再冻住抽 token，再训 LLM 与 CFM**。3.5 的 12.5Hz 只在应用材料里出现，有没有按 3.0 流程重训多任务 tokenizer，材料未写。
+
+**和“LLM 生成 token”的边界。** 本节的对象是 $X\mapsto\mu$：编码器加量化器如何从语音学出离散词表。LLM 的对象是 $Y\mapsto\mu$：已知文本（及参考音频抽出的 prompt token），自回归写下一段同词表的新索引。两段共享词表，训练目标不同。不要把 RAS、交错 5:15、KV cache 或 DiffRO 写成 tokenizer 训练的一部分；那些发生在词表已经冻结之后。
 
 ### 4.3 FSQ 与预训练 LLM 骨干
 
-2.0 用 FSQ 替换 RVQ：先把高维表征投到低维，再逐维有界取整，索引按 $(2K+1)^D$ 编码。码本利用更均匀，条件前缀更短，训练也更稳。
+FSQ 的取整、STE 反传、以及相对 VQ 的利用率数字见 4.2。这里只保留它作为 **LLM 条件接口** 的含义：先把高维表征投到低维，再逐维有界取整，索引按 $(2K+1)^D$ 编码。码本利用更均匀，就不必靠 RVQ 多组残差码本拉长条件前缀；2.0 实际替换掉的是 1.0 的单码本 VQ，不是一条已经在跑的 RVQ 管线。
 
 与此同时，文本—语音语言模型不再从零搭一套 300M Transformer，而是直接接 Qwen2 类预训练 LLM。文本侧的分词、句法与多语知识可以迁到 TTS，这是 2.0 自然度和流式能力的共同前提。3.0 的 CosyVoice3LM 继续这条“预训练语言模型当骨干”的路，只是按 0.5B / 1.5B 分档。
 
 ### 4.4 多任务监督 tokenizer
 
-3.0 不再只拿 ASR 训 tokenizer。应用材料给出的任务数据量为：
+3.0 不再只拿 ASR 训 tokenizer；FSQ 插在哪一层、任务头怎么接、训完如何冻结，见 4.2。任务数据量以 3.0 论文 Table 3 为准：
 
 | 监督任务 | 数据量 | 作用 |
 |----------|--------|------|
