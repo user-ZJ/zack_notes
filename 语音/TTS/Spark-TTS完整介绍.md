@@ -1,7 +1,5 @@
 # Spark-TTS 完整介绍
 
----
-
 ## 1. 概述
 
 Spark-TTS 是 2025 年 3 月由 **SparkAudio 开源社区**发布的零样本语音合成（Text-to-Speech, TTS）大模型。社区由出门问问牵头，联合香港科技大学、上海交通大学、南洋理工大学、西北工业大学音频语音与语言处理实验室（Audio, Speech and Language Processing, ASLP）、网易福羲人工智能实验室等机构。官方仓库采用 Apache 2.0 协议。

@@ -1,7 +1,5 @@
 # CosyVoice 完整介绍
 
----
-
 ## 1. 概述
 
 CosyVoice 是阿里巴巴通义实验室（Tongyi Lab / SpeechLab@Tongyi）自 2024 年 7 月起持续开源迭代的**多语种零样本语音合成（Text-to-Speech, TTS）与声音克隆**大模型系列，隶属 FunAudioLLM 项目，采用 Apache 2.0 协议。名字取自 “Cozy”（舒适）与 “Voice”（声音），目标是让合成语音接近自然说话。

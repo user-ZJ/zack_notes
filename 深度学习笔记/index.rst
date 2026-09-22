@@ -36,4 +36,5 @@
    向量存储和检索
    RAG/index
    推理框架/index
+   packed-input-batching完整介绍
 
