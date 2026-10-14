@@ -13,6 +13,7 @@
    语音推理框架发展路线图
    ASR/index
    TTS/index
+   TextNorm/index
    
    
    
