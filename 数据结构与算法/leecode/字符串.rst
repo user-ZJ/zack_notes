@@ -1,0 +1,327 @@
+字符串
+========
+
+
+替换空格
+---------------
+
+::
+
+    请实现一个函数，把字符串中的每个空格替换成"%20"。例如输入“We are happy.”，
+    则输出“We%20are%20happy.”。　
+
+
+.. tip:: 
+
+    | 先遍历一次字符串，这样就能统计出字符串中空格的总数，并可以由此计算出替换之后的字符串的总长度。
+    | 从字符串的后面开始复制和替换。
+
+
+.. code-block:: cpp
+
+    void ReplaceBlank(char str[],int len){
+        if(str==nullptr || len<=0)
+            return;
+        int originalLen=0,blankCount=0;
+        int i=0;
+        while(str[i++]!='\0'){
+            originalLen++;
+            if(str[i]==' ')
+                blankCount++;
+        }
+        int newLen = originalLen + 2*blankCount;
+        if(newLen>len)
+            return;
+        int index1 = originalLen;
+        int index2 = newLen;
+        while(index1>=0 && index2>=0){
+            if(str[index1]==' '){
+                str[index2--] = '0';
+                str[index2--] = '2';
+                str[index2--] = '%';
+                index1--;
+            }else{
+                str[index2--] = str[index1--];
+            }
+        }
+    }
+
+
+表示数值的字符串
+--------------------
+请实现一个函数用来判断字符串是否表示数值（包括整数和小数）。
+例如，字符串"+100","5e2","-123","3.1416"和"-1E-16"都表示数值。 
+但是"12e","1a3.14","1.2.3","+-5"和"12e+4.3"都不是。
+
+.. tip:: 
+
+    | 数值可以表示为 A[.[B]]e|E[C]或.B[e|EC]
+    | 其中A 和C 可以带有正负号，B不能带有符号
+
+.. code-block:: cpp
+
+    bool isNumeric(string str) {
+            // write code here
+            if(str.length()==0)
+                return false;
+            int index=0;
+            bool numeric = scanInterger(str,index);
+            //如果出现'.',则接下来是小数部分
+            if(str[index]=='.'){
+                ++index;
+                //使用或的原因：
+                //1. 小数可以没有整数部分；如 .123
+                //2. 小数点后可以没有数字；如 233.
+                //3. 小数点前后都可以有数字
+                numeric = scanUnsignedInteger(str,index) || numeric;
+            }
+            if(str[index]=='e'||str[index]=='E'){
+                ++index;
+                //使用&&的原因
+                //1. 当e或E前面没有数字时，整个字符串不能表示数字，如 .e1 e1
+                //2. 当e或E后面没有整数时，整个字符串不能表示数字，如 12e 12e+5.4
+                numeric=numeric&&scanInterger(str,index);
+            }
+            return numeric && (index==str.size());
+    }
+    bool scanInterger(string str,int &index){
+            if(str[index]=='+'||str[index]=='-')
+                ++index;
+            return scanUnsignedInteger(str,index);
+    }
+    bool scanUnsignedInteger(string str,int &index){
+            int begin=index;
+            while(index<str.length()&&str[index]>='0'&&str[index]<='9')
+                ++index;
+            return index>begin;
+    }
+
+
+翻转单词顺序
+---------------
+输入一个英文句子，翻转句子中单词的顺序，但单词内字符的顺序不变。为简单起见，标点符号和普通字母一样处理。
+例如输入字符串“I am a student.”，则输出“student. a am I”。
+
+.. tip:: 
+
+    第一步翻转句子中所有的字符。
+    第二步再翻转每个单词中字符的顺序。
+
+.. code-block:: cpp
+
+    string ReverseSentence(string str) {
+            if(str.empty())
+                return str;
+            Reverse(str,0,str.length()-1);  //转句子中所有的字符
+            int start=0,end=0;
+            while(start < str.length()){
+                if(str[start]==' '){
+                    start++;
+                    end++;
+                }else if(end==str.length()||str[end]==' '){
+                    Reverse(str, start, end-1);
+                    end++;
+                    start=end;
+                }else{
+                    end++;
+                }
+            }
+            return str;
+    }
+    void Reverse(string &str,int begin,int end){
+            while(begin<end){
+                swap(str[begin],str[end]);
+                begin++;
+                end--;
+            }
+    }
+
+
+中文数字转阿拉伯数字
+--------------------------------
+::
+
+    给定一个中文数字字符串，返回阿拉伯表示的字符串
+    如：三点五->3.5  三百零二->302
+    如果不是有效的表示返回原字符串
+
+.. tip:: 
+
+    | 定义数字和单位表
+    | 数字包括（1,2,3,4,5,6,7,8,9）
+    | 单位分为高级单位(十百千)和低级单位(万，亿)，高级单位可以和低级单位组合
+    | 从后往前遍历，遇到的是1到9的数字，就乘以前一位的单位，
+
+.. code-block:: cpp
+
+    static std::unordered_map<wchar_t, int> chinese_num = {
+     {L'一', 1}, {L'二', 2}, {L'三', 3}, {L'四', 4}, {L'五', 5}, 
+     {L'六', 6}, {L'七', 7}, {L'八', 8}, {L'九', 9}};
+    static std::unordered_map<wchar_t, int> high_units = {{L'万', 10000}, {L'亿', 100000000}};
+    static std::unordered_map<wchar_t, int> low_units = {{L'十', 10}, {L'百', 100}, {L'千', 1000}};
+
+    int Chinese2Digits::chineseToNum(const std::wstring &s) {
+        int res = 0; //最终结果
+        int num = 0; // 不同单位对应的值
+        int high_unit = 1,low_unit=1; // 单位
+        for (int i = s.size()-1; i >=0 ; i--) {
+            auto c = s[i];
+            if (high_units.count(c)) { 
+                high_unit = high_units[c];
+                low_unit = 1;
+                num = 0;
+            } else if(low_units.count(c)){
+                low_unit = low_units[c];
+                if(i==0)
+                    num = low_unit*high_unit;  //处理以十开头的，如十二
+                else
+                    num = 0;
+            }else if(chinese_num.count(c)){
+                num += chinese_num[c]*high_unit*low_unit;
+            }else{
+                num = 0;
+            }
+                res += num;
+        }
+        return res;
+    }
+
+
+罗马数字转整数
+--------------------------------
+罗马数字包含以下七种字符: I， V， X， L，C，D 和 M。
+
+| 字符          数值
+| I             1
+| V             5
+| X             10
+| L             50
+| C             100
+| D             500
+| M             1000
+| 例如， 罗马数字 2 写做 II ，即为两个并列的 1 。12 写做 XII ，即为 X + II 。 27 写做  XXVII, 即为 XX + V + II 。
+
+通常情况下，罗马数字中小的数字在大的数字的右边。但也存在特例，例如 4 不写做 IIII，而是 IV。数字 1 在数字 5 的左边，所表示的数等于大数 5 减小数 1 得到的数值 4 。同样地，数字 9 表示为 IX。这个特殊的规则只适用于以下六种情况：
+
+| I 可以放在 V (5) 和 X (10) 的左边，来表示 4 和 9。
+| X 可以放在 L (50) 和 C (100) 的左边，来表示 40 和 90。 
+| C 可以放在 D (500) 和 M (1000) 的左边，来表示 400 和 900。
+
+给定一个罗马数字，将其转换成整数。
+
+.. tip::
+
+    通常情况下，罗马数字中小的数字在大的数字的右边。若输入的字符串满足该情况，那么可以将每个字符视作一个单独的值，累加每个字符对应的数值即可。
+
+    例如 XXVII 可视作 X+X+V+I+I=10+10+5+1+1=27。
+
+    若存在小的数字在大的数字的左边的情况，根据规则需要减去小的数字。对于这种情况，我们也可以将每个字符视作一个单独的值，若一个数字右侧的数字比它大，则将该数字的符号取反。
+
+    例如 XIV 可视作 X−I+V=10−1+5=14。
+
+
+.. literalinclude:: code/罗马数字转整数.cpp
+    :language: cpp
+
+
+整数转罗马数字
+-----------------------------------
+七个不同的符号代表罗马数字，其值如下：
+
+| 字符          数值
+| I             1
+| V             5
+| X             10
+| L             50
+| C             100
+| D             500
+| M             1000
+
+罗马数字是通过添加从最高到最低的小数位值的转换而形成的。将小数位值转换为罗马数字有以下规则：
+
+* 如果该值不是以 4 或 9 开头，请选择可以从输入中减去的最大值的符号，将该符号附加到结果，减去其值，然后将其余部分转换为罗马数字。
+* 如果该值以 4 或 9 开头，使用 减法形式，表示从以下符号中减去一个符号，例如 4 是 5 (V) 减 1 (I): IV ，9 是 10 (X) 减 1 (I)：IX。仅使用以下减法形式：4 (IV)，9 (IX)，40 (XL)，90 (XC)，400 (CD) 和 900 (CM)。
+* 只有 10 的次方（I, X, C, M）最多可以连续附加 3 次以代表 10 的倍数。你不能多次附加 5 (V)，50 (L) 或 500 (D)。如果需要将符号附加4次，请使用 减法形式。
+
+给定一个整数，将其转换为罗马数字。
+
+.. tip::
+
+    根据罗马数字的唯一表示法，为了表示一个给定的整数 num，我们寻找不超过 num 的最大符号值，将 num 减去该符号值，然后继续寻找不超过 num 的最大符号值，将该符号拼接在上一个找到的符号之后，循环直至 num 为 0。最后得到的字符串即为 num 的罗马数字表示。
+
+    编程时，可以建立一个数值-符号对的列表 valueSymbols，按数值从大到小排列。遍历 valueSymbols 中的每个数值-符号对，若当前数值 value 不超过 num，则从 num 中不断减去 value，直至 num 小于 value，然后遍历下一个数值-符号对。若遍历中 num 为 0 则跳出循环。
+
+.. literalinclude:: code/整数转罗马数字.cpp
+    :language: cpp
+
+
+文本左右对齐
+-----------------------
+给定一个单词数组 words 和一个长度 maxWidth ，重新排版单词，使其成为每行恰好有 maxWidth 个字符，且左右两端对齐的文本。
+
+你应该使用 “贪心算法” 来放置给定的单词；也就是说，尽可能多地往每行中放置单词。必要时可用空格 ' ' 填充，使得每行恰好有 maxWidth 个字符。
+
+要求尽可能均匀分配单词间的空格数量。如果某一行单词间的空格不能均匀分配，则左侧放置的空格数要多于右侧的空格数。
+
+文本的最后一行应为左对齐，且单词之间不插入额外的空格。
+
+注意:
+
+单词是指由非空格字符组成的字符序列。
+每个单词的长度大于 0，小于等于 maxWidth。
+输入单词数组 words 至少包含一个单词。
+ 
+.. code-block:: text
+
+    示例 1:
+
+    输入: words = ["This", "is", "an", "example", "of", "text", "justification."], maxWidth = 16
+    输出:
+    [
+    "This    is    an",
+    "example  of text",
+    "justification.  "
+    ]
+
+    示例 2:
+
+    输入:words = ["What","must","be","acknowledgment","shall","be"], maxWidth = 16
+    输出:
+    [
+    "What   must   be",
+    "acknowledgment  ",
+    "shall be        "
+    ]
+    解释: 注意最后一行的格式应为 "shall be    " 而不是 "shall     be",
+        因为最后一行应为左对齐，而不是左右两端对齐。       
+        第二行同样为左对齐，这是因为这行只包含一个单词。
+
+    示例 3:
+
+    输入:words = ["Science","is","what","we","understand","well","enough","to","explain","to","a","computer.","Art","is","everything","else","we","do"]，maxWidth = 20
+    输出:
+    [
+    "Science  is  what we",
+    "understand      well",
+    "enough to explain to",
+    "a  computer.  Art is",
+    "everything  else  we",
+    "do                  "
+    ]
+
+.. tip:: 
+
+    根据题干描述的贪心算法，对于每一行，我们首先确定最多可以放置多少单词，这样可以得到该行的空格个数，从而确定该行单词之间的空格个数。
+
+    根据题目中填充空格的细节，我们分以下三种情况讨论：
+
+    当前行是最后一行：单词左对齐，且单词之间应只有一个空格，在行末填充剩余空格；
+    当前行不是最后一行，且只有一个单词：该单词左对齐，在行末填充空格；
+    当前行不是最后一行，且不只一个单词：设当前行单词数为 numWords，空格数为 numSpaces，我们需要将空格均匀分配在单词之间，则单词之间应至少有
+
+    avgSpaces=numSpaces/(numWords−1)向下取整个空格，对于多出来的
+    extraSpaces=numSpacesmod(numWords−1)
+    个空格，应填在前 extraSpaces 个单词之间。因此，前 extraSpaces 个单词之间填充 avgSpaces+1 个空格，其余单词之间填充 avgSpaces 个空格。
+
+.. literalinclude:: code/文本左右对齐.cpp
+    :language: cpp

@@ -1,5 +1,5 @@
 回溯算法
-==============
+========
 
 解决一个回溯问题,实际上就是一个决策树的遍历过程。你只需要思考 3 个问题:
 
@@ -46,6 +46,7 @@
 
 另外，双向搜索（同时从起点和终点开始搜索，两边相遇时停止）也常被用来减少搜索量，
 但它严格来说是一种搜索策略而不是回溯中的剪枝，一般与BFS配合使用，并且要求事先知道目标状态。
+
 
 矩阵中的路径
 ------------------------
@@ -103,53 +104,6 @@
             return false;
     }
 
-机器人的运动范围
------------------------
-::
-
-    地上有一个m行和n列的方格。一个机器人从坐标0,0的格子开始移动，
-    每一次只能向左，右，上，下四个方向移动一格，
-    但是不能进入行坐标和列坐标的数位之和大于k的格子。 
-    例如，当k为18时，机器人能够进入方格（35,37），因为3+5+3+7 = 18。
-    但是，它不能进入方格（35,38），因为3+5+3+8 = 19。请问该机器人能够达到多少个格子？
-
-.. tip:: 
-
-    | 结束条件: 越界、已访问过或坐标的数位之和大于k
-    | 注意：本题是求连通区域的格子数（flood fill），每个格子只需统计一次，
-    | 所以访问后不需要撤销标记，这一点与标准的回溯框架不同
-
-
-.. code-block:: cpp
-
-    int check(int n){
-            int sum=0;
-            while(n){
-                sum += n%10;
-                n/=10;
-            }
-            return sum;
-    }
-    void dfs(int x,int y,int threshold,int r,int c,int &res,vector<vector<int>> &mask){
-            if(x<0||x>=r||y<0||y>=c||mask[x][y]==1)
-                return;
-            if(check(x)+check(y)>threshold)
-                return;
-            mask[x][y] = 1;
-            res += 1;
-            dfs(x+1,y,threshold,r,c,res,mask);
-            dfs(x-1,y,threshold,r,c,res,mask);
-            dfs(x,y+1,threshold,r,c,res,mask);
-            dfs(x,y-1,threshold,r,c,res,mask);
-    }
-    int movingCount(int threshold, int rows, int cols) {
-            if(threshold<0 || rows<=0 || cols<=0)  // threshold为0时(0,0)仍可进入
-                return 0;
-            vector<vector<int>> mask(rows,vector<int>(cols,-1));
-            int res = 0;
-            dfs(0,0,threshold,rows,cols,res,mask);
-            return res;
-    }
 
 二叉树中和为某一值的路径
 -----------------------------
@@ -233,6 +187,7 @@
             return res;
         }
     };
+
 
 有重复项数字的全排列
 -------------------------------
@@ -420,7 +375,3 @@
         cout << endl;
         return 0;
     }
-
-
-
-

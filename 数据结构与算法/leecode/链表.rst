@@ -1,0 +1,330 @@
+链表
+========
+
+
+从尾到头打印链表
+-------------------
+
+::
+
+    输入一个链表的头结点，从尾到头反过来打印出每个结点的值。
+
+
+.. tip:: 
+
+    | 解法一：反转链表，再从头打印，需要修改原链表内容
+    | 解法二：先遍历一遍链表，将数据记录在栈中，再从栈中弹出数据，不修改原链表的内容，增加了一个容量为N的栈
+    | 解法三：使用递归，访问每个节点的时候先递归输出后面的节点，但是当链表非常长的时候，可能会导致调用栈溢出。
+
+
+删除链表节点
+-----------------
+
+::
+
+    给定单向链表的头指针和一个节点指针，定义一个函数在O(1)时间内删除该节点
+
+
+.. tip:: 
+
+    | 把下一个节点的内容复制到需要删除的节点覆盖原来的内容，再把下一个节点删除;
+    | 如果要删除的节点位于链表的尾部，仍然需要从链表的头结点开始，顺序遍历得到该节点的前序节点，并完成删除操作
+    | 如果链表中只有一个节点，而我们又要删除链表的头结点，那么再删除节点之后还需要把链表的头结点设置为nullptr
+
+
+.. code-block:: cpp
+
+    void DeleteNode(ListNode **head,ListNode *deleted){
+        if(head==nullptr||deleted==nullptr)
+            return;
+        //要删除的节点不是尾节点
+        if(deleted->next!=nullptr){
+            ListNode *pnext = deleted->next;
+            deleted->value = pnext->value;
+            deleted->next = pnext->next;
+            delete pnext;
+            pnext = nullptr;
+        }else if(*head==deleted){  //只有一个节点，删除头结点
+            delete deleted;
+            deleted = nullptr;
+            *head = nullptr;
+        }else{  //链表中有多个节点。删除尾节点
+            ListNode *p = *head;
+            while(p->next != deleted){
+                p = p->next;
+            }
+            p->next = nullptr;
+            delete deleted;
+            deleted = nullptr;
+        }
+    }
+
+
+反转链表
+-------------
+
+::
+
+    输入一个链表，反转链表后，输出新链表的表头。
+
+
+.. code-block:: cpp
+
+    ListNode* ReverseList(ListNode* pHead) {
+            ListNode *pre = nullptr;
+            ListNode *cur = pHead;
+            ListNode *nex = nullptr; // 这里可以指向nullptr，循环里面要重新指向
+            while (cur) {
+                // 反转next指针
+                nex = cur->next;
+                cur->next = pre;
+                // 更新指针位置
+                pre = cur;
+                cur = nex;
+            }
+            return pre;
+    }
+
+
+合并两个有序的链表
+---------------------
+
+::
+
+    输入两个单调递增的链表，输出两个链表合成后的链表，当然我们需要合成后的链表满足单调不减规则。
+
+
+.. code-block:: cpp
+
+    ListNode* Merge(ListNode* pHead1, ListNode* pHead2) {
+            ListNode tmp(0);
+            ListNode *p = &tmp;
+            p->next = nullptr;
+            while(pHead1!=nullptr && pHead2!=nullptr){
+                if(pHead1->val < pHead2->val){
+                    p->next=pHead1;
+                    pHead1 = pHead1->next;
+                }else{
+                    p->next = pHead2;
+                    pHead2 = pHead2->next;
+                }
+                p = p->next;
+            }
+            if(pHead1!=nullptr) p->next = pHead1;
+            if(pHead2!=nullptr) p->next = pHead2;
+            return tmp.next;
+    }
+
+
+删除链表中重复节点
+---------------------
+::
+
+    在一个排序的链表中，存在重复的结点，请删除该链表中重复的结点，重复的结点不保留，返回链表头指针。 
+    例如，链表1->2->3->3->4->4->5 处理后为 1->2->5
+
+
+.. code-block:: cpp
+
+    ListNode* deleteDuplication(ListNode* pHead) {
+            if (pHead == nullptr || pHead->next == nullptr) {
+                return pHead;
+            }
+    
+            ListNode* dummy = new ListNode(-1);
+            dummy->next = pHead;
+            ListNode* pre = dummy;
+            ListNode* cur = nullptr;
+            ListNode* temp = nullptr;
+            
+            while (pre->next != nullptr) {
+                cur = pre->next;
+                if (cur->next != nullptr && cur->next->val == cur->val) {
+                    int target = cur->val;
+                    while (cur != nullptr && cur->val == target) {
+                        temp = cur;
+                        cur = cur->next;
+                        delete temp;
+                    }
+                    pre->next = cur;
+                } else {
+                    pre = pre->next;
+                }
+            }
+    
+            return dummy->next;
+    }
+
+
+复杂链表的复制
+-------------------
+
+::
+
+    请实现一个函数实现复杂链表的复制。在复杂链表中，每个节点除了有一个m_pNext指针指向下一个节点，
+    还有一个m_pSlibing指针指向量表中的任意节点或者nullptr
+
+.. tip:: 
+
+    | 第一步：根据原始链表的每个节点N创建对应的N',把N'链接再N后面
+    | 第二步：设置复制出来的节点的m_pSibling,N的m_pSibling指向节点S，则N‘的m_pSibling指向S'
+    | 第三步：把长链表拆分成两个链表，把奇数位置的节点用m_pNext链接起来就是原始链表，把偶数位置的节点用m_pNext链接起来就是复制出来的链表
+
+.. code-block:: cpp
+
+    RandomListNode* Clone(RandomListNode* pHead) {
+            if(pHead==nullptr)
+                return nullptr;
+            RandomListNode *head = pHead;
+            //第一步：根据原始链表的每个节点N创建对应的N',把N'链接再N后面
+            while(head!=nullptr){
+                RandomListNode *clone = new RandomListNode(head->label);
+                clone->next = head->next;
+                head->next = clone;
+                head = clone->next;
+            }
+            //第二步：设置复制出来的节点的m_pSibling,N的m_pSibling指向节点S，则N‘的m_pSibling指向S'
+            RandomListNode *head1 = pHead;
+            RandomListNode *clone1;
+            while(head1){
+                clone1 = head1->next;
+                if(head1->random != nullptr)
+                    clone1->random = head1->random->next;
+                else
+                    clone1->random = nullptr;
+                head1 = clone1->next;
+            }
+            //第三步：把长链表拆分成两个链表，把奇数位置的节点用m_pNext链接起来就是原始链表，
+            // 把偶数位置的节点用m_pNext链接起来就是复制出来的链表
+            RandomListNode *head2 = pHead;
+            RandomListNode *clone2;
+            RandomListNode *cloned = pHead->next;
+            while(head2){
+                clone2 = head2->next;
+                head2->next = clone2->next;
+                head2 = head2->next;
+                if(head2!=nullptr)
+                    clone2->next = head2->next;
+            }
+            return cloned;
+    }
+
+
+链表中倒数第K个节点
+---------------------------
+输入一个链表，输出该链表中倒数第k个结点。
+如果该链表长度小于k，请返回空。
+
+.. tip:: 
+
+    使用两个指针遍历链表，使得两个指针距离为k，
+    当一个指针到达链表末尾，另一个指针即为倒数第k个节点的位置
+
+.. code-block:: cpp
+
+    ListNode* FindKthToTail(ListNode* pHead, int k) {
+            // write code here
+            if(pHead==nullptr || k<=0)
+                return nullptr;
+            ListNode *p1 = pHead;
+            ListNode *p2=nullptr;
+            for(int i=0;i<k-1;i++){  //注意此处为k-1
+                if(p1->next==nullptr)
+                    return nullptr;
+                else
+                    p1 = p1->next;
+            }
+            p2 = pHead;
+            while(p1->next!=nullptr){
+                p2 = p2->next;
+                p1 = p1->next;
+            }
+            return p2;
+    }
+
+
+链表中环的入口节点
+---------------------------------
+给一个链表，若其中包含环，请找出该链表的环的入口结点，否则，输出null。
+
+.. tip:: 
+
+    | 使用快慢指针，快指针每次后移两个节点，慢指针每次后移一个节点
+    | 从相遇处到入口结点的距离与头结点与入口结点的距离相同
+
+.. code-block:: cpp
+
+    ListNode *detectCycle(ListNode *head) {
+            ListNode *fast = head;
+            ListNode *slow = head;
+            while(fast!=nullptr && fast->next!=nullptr){
+                fast = fast->next->next;
+                slow = slow->next;
+                if(fast==slow){
+                    // 重新指向链表头部
+                    ListNode *slow2 = head;
+                    // 与第一次相遇的结点相同速度出发，相遇结点为入口结点
+                    while(slow != slow2){
+                        slow = slow->next;
+                        slow2 = slow2->next;
+                    }
+                    return slow;
+                }
+            }
+            return nullptr;
+    }
+
+
+两个链表的第一个公共节点
+----------------------------------
+输入两个无环的单链表，找出它们的第一个公共结点。
+
+.. image:: /images/list1.png
+
+.. tip:: 
+
+    将两个链表长度拼接，则两个链表的长度均为a+b,使用双指针，则第一个相同的节点即为相交节点
+
+.. code-block:: cpp
+
+    ListNode* FindFirstCommonNode( ListNode* pHead1, ListNode* pHead2) {
+            ListNode* p1=pHead1;
+            ListNode* p2=pHead2;
+            int len1=0;
+            int len2=0;
+            while(p1)
+            {
+                len1++;
+                p1=p1->next;
+            }
+            while(p2)
+            {
+                len2++;
+                p2=p2->next;
+            }
+            int num=0;
+            if(len1>len2)
+            {
+                num=len1-len2;
+                while(num!=0)
+                {
+                    pHead1=pHead1->next;
+                    num--;
+                }
+            }else{
+                num=len2-len1;
+                while(num!=0)
+                {
+                    pHead2=pHead2->next;
+                    num--;
+                }
+            }
+            while(pHead1)
+            {
+                if(pHead1==pHead2)
+                    return pHead1;
+                pHead1=pHead1->next;
+                pHead2=pHead2->next;
+            }
+            return nullptr;
+    }

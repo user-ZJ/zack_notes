@@ -1,0 +1,526 @@
+树
+========
+
+
+.. _重建二叉树: 
+
+重建二叉树
+---------------------------
+
+::
+
+    输入某二叉树的前序遍历和中序遍历的结果，请重建出该二叉树。
+    假设输入的前序遍历和中序遍历的结果中都不含重复的数字。
+    例如输入前序遍历序列{1,2,4,7,3,5,6,8}和中序遍历序列{4,7,2,1,5,3,8,6}，则重建二叉树并返回。
+
+.. tip:: 
+
+    从前序遍历可知，前序遍历数组pre的首元素就是二叉树的根结点，
+    然后根据根结点的值在中序遍历中找到根结点的位置，
+    那么根结点左边就为左子树的序列，根结点右边就是右子树的序列。
+    使用同样的方法构建左右子树。
+
+
+.. code-block:: cpp
+
+    TreeNode* reConstructBinaryTree(vector<int> pre,vector<int> vin) {
+            return rebuild(pre, 0, pre.size()-1, vin, 0, vin.size()-1);
+    }
+        
+    TreeNode *rebuild(vector<int> &pre,int pre_l,int pre_r,vector<int> &vin,int vin_l,int vin_r){
+            if(pre_l>pre_r) return nullptr;
+            TreeNode *root = new TreeNode(pre[pre_l]);
+            int root_index;
+            for(root_index=vin_l;root_index<=vin_r;root_index++){
+                if(vin[root_index]==root->val)
+                    break;
+            }
+            root->left= rebuild(pre, pre_l+1, pre_l+root_index-vin_l, vin, vin_l, root_index-1);
+            root->right = rebuild(pre, pre_l+root_index-vin_l+1, pre_r, vin, root_index+1, vin_r);
+            return root;
+    }
+
+
+二叉树的下一个节点
+-------------------
+
+::
+
+    给定一个二叉树和其中的一个结点，请找出中序遍历顺序的下一个结点并且返回。
+    注意，树中的结点不仅包含左右子结点，同时包含指向父结点的指针。
+
+
+.. tip:: 
+
+    | 1.node节点有右孩子。下一个结点就是以node结点的右孩子为根的子树中的最左下结点
+    | 2.node 节点没有右孩子时，node节点是其父结点的左孩子。
+    | 3.node 节点没有右孩子时，node节点是其父结点的右孩子，可以沿着指向父节点的指针一直向上遍历，
+    | 直到找到一个是它父节点的左子节点的节点，如果存在即为下一个节点，否则为空。
+
+
+树的子结构
+---------------
+
+::
+
+    输入两棵二叉树A，B，判断B是不是A的子结构。（ps：约定空树不是任意一个树的子结构）
+
+.. tip:: 
+
+    | 第一步，在树A中查找与根节点值一样的节点R
+    | 第二步，判断树A中以R为根节点的子树是不是和树B具有相同结构
+
+
+.. code-block:: cpp
+
+    bool HasSubtree(TreeNode* pRoot1, TreeNode* pRoot2) {
+            //第一步，在树A中查找与根节点值一样的节点
+            bool result = false;
+            if(pRoot1!=nullptr&&pRoot2!=nullptr){
+                if(Equal(pRoot1->val,pRoot2->val)){
+                    result = DoesTree1HaveTree2(pRoot1,pRoot2);
+                }
+                if(!result) result = HasSubtree(pRoot1->left, pRoot2);
+                if(!result) result = HasSubtree(pRoot1->right, pRoot2);
+            }
+            return result;
+    }
+    bool DoesTree1HaveTree2(TreeNode* pRoot1, TreeNode* pRoot2){
+            //第二步，判断树A中以R为根节点的子树是不是和树B具有相同结构
+            if(pRoot2==nullptr) return true;
+            if(pRoot1==nullptr) return false;
+            if(!Equal(pRoot1->val, pRoot2->val)){
+                return false;
+            }
+            return 
+                DoesTree1HaveTree2(pRoot1->left, pRoot2->left) && 
+                DoesTree1HaveTree2(pRoot1->right, pRoot2->right);
+    }
+    bool Equal(double num1,double num2){
+            if(abs(num1-num2)<1e-6)
+                return true;
+            else
+                return false;
+    }
+
+
+二叉树的镜像
+-------------------
+
+::
+
+    操作给定的二叉树，将其变换为源二叉树的镜像。
+
+.. tip:: 
+
+    先序遍历二叉树，如果遍历到的节点有子节点，交换它的两个子节点
+
+
+.. code-block:: cpp
+
+    TreeNode* Mirror(TreeNode* pRoot) {
+            // write code here
+            dfs(pRoot);
+            return pRoot;
+    }
+    void dfs(TreeNode *root){
+            if(root == nullptr) return;
+            swap(root->left, root->right);
+            dfs(root->left);
+            dfs(root->right);
+    }
+
+
+对称的二叉树
+---------------
+
+::
+
+    请实现一个函数，用来判断一棵二叉树是不是对称的。
+    注意，如果一个二叉树同此二叉树的镜像是同样的，定义其为对称的。
+
+
+.. tip:: 
+
+    | 前序遍历：根-左-右
+    | 对称前序遍历：根-右-左
+    | 当树对称时，前序遍历和对称前序遍历的结果相同
+
+
+.. code-block:: cpp
+
+    bool isSymmetrical(TreeNode* pRoot) {
+            return isSymmetrical(pRoot,pRoot);
+    }
+    bool isSymmetrical(TreeNode *pRoot1,TreeNode *pRoot2){
+            if(pRoot1==nullptr && pRoot2==nullptr)
+                return true;
+            if(pRoot1==nullptr || pRoot2==nullptr)
+                return false;
+            return pRoot1->val == pRoot2->val &&
+                isSymmetrical(pRoot1->left,pRoot2->right) &&
+                isSymmetrical(pRoot1->right,pRoot2->left);
+    }
+
+
+从上到下打印二叉树
+---------------------
+
+::
+
+    从上往下打印出二叉树的每个节点，同层节点从左至右打印。
+
+.. tip:: 
+
+    使用队列存储根节点，并在节点出队列时将其子节点添加到队列中
+
+
+.. code-block:: cpp
+
+    vector<int> PrintFromTopToBottom(TreeNode* root) {
+            vector<int> res;
+            queue<TreeNode *> mq;
+            if(root!=nullptr){
+                mq.push(root);
+            }
+            while(!mq.empty()){
+                TreeNode *node = mq.front();
+                if(node->left!=nullptr) mq.push(node->left);
+                if(node->right!=nullptr) mq.push(node->right);
+                res.push_back(node->val);
+                mq.pop();
+            }
+            return res;
+    }
+
+
+分行从上到下打印二叉树
+-----------------------------
+
+::
+
+    从上到下按层打印二叉树，同一层结点从左至右输出。每一层输出一行。
+
+.. tip:: 
+
+    使用队列存储根节点，并在节点出队列时将其子节点添加到队列中，每次从队列中取出一层节点
+
+.. code-block:: cpp
+
+    vector<vector<int> > Print(TreeNode* pRoot) {
+                vector<vector<int>> res;
+                if(pRoot==nullptr)
+                    return res;
+                queue<TreeNode *> mq;
+                mq.push(pRoot);
+                while(!mq.empty()){
+                    int size = mq.size();
+                    vector<int> lay;
+                    for(int i=0;i<size;i++){
+                        lay.push_back(mq.front()->val);
+                        if(mq.front()->left!=nullptr) mq.push(mq.front()->left);
+                        if(mq.front()->right!=nullptr) mq.push(mq.front()->right);
+                        mq.pop();
+                    }
+                    res.push_back(lay);
+                    lay.clear();
+                }
+                return res;
+    }
+
+
+之字形打印二叉树
+---------------------
+
+::
+
+    请实现一个函数按照之字形打印二叉树，即第一行按照从左到右的顺序打印，第二层按照从右至左的顺序打印，
+    第三行按照从左到右的顺序打印，其他行以此类推。
+
+.. tip:: 
+
+    | 按之字形顺序打印二叉树需要两个栈。我们在打印某一层的节点时，把下一层的子节点保存到相应的栈里。
+    | 如果当前打印的是奇数层，则先保存左子节点再保存右子节点到第一个栈里
+    | 如果当前打印的是偶数层，则先保存右子节点再保存左子节点到第二个栈里
+
+
+.. code-block:: cpp
+
+    vector<vector<int> > Print(TreeNode* pRoot) {
+            vector<vector<int>> res;
+            if(pRoot==nullptr)
+                return res;
+            stack<TreeNode *> levels[2];
+            int current = 0;
+            int next = 1;
+            vector<int> vec;
+            levels[current].push(pRoot);
+            while(!levels[0].empty()||!levels[1].empty()){
+                TreeNode *pNode = levels[current].top();
+                levels[current].pop();
+                vec.push_back(pNode->val);
+                if(current==0){
+                    if(pNode->left!=nullptr) levels[next].push(pNode->left);
+                    if(pNode->right!=nullptr) levels[next].push(pNode->right);
+                }else{
+                    if(pNode->right!=nullptr) levels[next].push(pNode->right);
+                    if(pNode->left!=nullptr) levels[next].push(pNode->left);
+                }
+                if(levels[current].empty()){
+                    res.push_back(vec);
+                    vec.clear();
+                    swap(current, next);
+                }
+            }
+            return res;
+    }
+
+
+二叉搜索树的后续遍历序列
+-------------------------------
+
+::
+
+    输入一个整数数组，判断该数组是不是某二叉搜索树的后序遍历的结果。
+    如果是则返回true,否则返回false。假设输入的数组的任意两个数字都互不相同。
+
+
+.. tip:: 
+
+    | 在后续遍历得到的序列中，最后一个数字是树的根节点的值。
+    | 数组中前面的数字可以分为两部分：第一部分是左子树，它们都比树的根节点的值小；第二部分是右子树，它们的值都比根节点的值大。
+    | 使用递归的方法确定与数组每一部分对应的子树结构
+
+
+.. code-block:: cpp
+
+    bool VerifySquenceOfBST(vector<int> sequence) {
+            if (sequence.size() == 0) return false;
+            int lens = sequence.size();
+            int root = sequence[lens-1];
+            //在二叉搜索树中的左子树节点的值小于根节点的值
+            int index = 0;
+            while (root > sequence[index]) {
+                index++;
+            }
+            //在二叉搜索树中的右子树节点的值大于根节点的值
+            for (int j = index; j < lens - 1; j++) {
+                if (sequence[j] < root) {
+                    return false;
+                }
+            }
+            vector<int> _Left (sequence.begin(), sequence.begin()+index);
+            vector<int> _Right (sequence.begin()+index, sequence.end()-1);
+            //判断左子树是不是二叉搜索树
+            bool left = _Left.size() > 0 ? VerifySquenceOfBST(_Left) : true;
+            //判断右子树是不是二叉搜索树
+            bool right = _Right.size() > 0 ? VerifySquenceOfBST(_Right) : true;
+            return left && right;
+    }
+
+
+二叉搜索树与双向链表
+---------------------
+
+::
+
+    输入一棵二叉搜索树，将该二叉搜索树转换成一个排序的双向链表。
+    要求不能创建任何新的结点，只能调整树中结点指针的指向。
+
+.. tip:: 
+
+    二叉搜索树的性质是：左节点 < 当前节点 < 右节点。转换后的双向链表是有序的，这里采用中序递归遍历保证有序性。
+
+.. code-block:: cpp
+
+    TreeNode* Convert(TreeNode* pRootOfTree) {
+            if(pRootOfTree == nullptr) return nullptr;
+            // 双向链表尾节点
+            TreeNode* list_last = nullptr;
+            // 递归建立双向链表
+            ConvertNode(pRootOfTree,list_last);
+            // 查找双向链表首节点
+            while(list_last->left != nullptr)
+            {
+                list_last = list_last->left;
+            }
+    
+            // 返回双向链表的首节点
+            return list_last;
+    }
+    // 对BST中序遍历，得到有序序列；调整序列元素的指针，将有序序列调整为双向链表
+    void ConvertNode(TreeNode* cur,TreeNode *&list_last) // 注意形参
+    {
+            // 边界条件(递归出口)
+            if(cur==nullptr) return ;
+    
+            // 遍历左子树
+            if(cur->left != nullptr) ConvertNode(cur->left,list_last);
+    
+            // 建立双向链接
+            cur->left = list_last;                           // 单侧链接
+            if(list_last != nullptr) list_last->right = cur; // 单侧链接
+            list_last = cur;
+    
+            //遍历右子树
+            if(cur->right != nullptr) ConvertNode(cur->right,list_last);
+    }
+
+
+序列化二叉树
+-------------------
+::
+
+    请实现两个函数，分别用来序列化和反序列化二叉树
+
+.. tip:: 
+
+    根据前序遍历序列化和反序列化树
+
+.. code-block:: cpp
+
+    class Solution {
+    public:
+        string s;
+        int j =0;
+        void Serial(TreeNode *root)
+        {
+            if(root==NULL)
+            {
+                s+="#!";
+                return;
+            }
+            s+= to_string(root->val);
+            s+='!';
+            Serial(root->left);
+            Serial(root->right);
+        }
+        
+        
+        TreeNode* Deserial(string s)
+        {
+            if (s.size()==0) return NULL;
+            if (s[j] == '!')
+            {
+                j++;
+                if(j>=s.size())
+                {
+                    return NULL;
+                }
+            }
+            if (s[j]=='#')
+            {
+                j++;
+                return NULL;
+            }
+            int num = 0;
+            while(s[j]>='0' && s[j]<='9')
+            {
+                num = num*10 + s[j++]-'0';
+            }
+            TreeNode *root = new TreeNode(num);
+            root->left = Deserial(s);
+            root->right = Deserial(s);
+            return root;
+        }
+        
+        char* Serialize(TreeNode *root) {   
+            Serial(root);
+            return (char*)s.data();
+            
+        }
+        TreeNode* Deserialize(char *str) {
+            s = str;
+            return Deserial(s);
+        }
+    };
+
+
+二叉搜索树的第K大节点
+-------------------------------
+::
+
+    给定一棵二叉搜索树，请找出其中的第k大的结点
+
+.. tip:: 
+
+    二叉搜索树中序遍历是有序的，只需要用中序遍历算法遍历一遍，就很容易找到它的第k大节点
+
+.. code-block:: cpp
+
+    int index = 0; //计数器
+    TreeNode* KthNode(TreeNode* pRoot, int k) {
+        if(pRoot != nullptr){ //中序遍历寻找第k个
+            TreeNode *node = KthNode(pRoot->left,k);
+            if(node != nullptr)
+                return node;
+            index ++;
+            if(index == k)
+                return pRoot;
+            node = KthNode(pRoot->right,k);
+            if(node != nullptr)
+                return node;
+        }
+        return nullptr;
+    }
+
+
+二叉树的深度
+-------------------
+::
+
+    输入一棵二叉树，求该树的深度。
+    从根结点到叶结点依次经过的结点（含根、叶结点）形成树的一条路径，最长路径的长度为树的深度。
+
+.. tip:: 
+
+    二叉树的深度=max(左子树深度，右子树深度)+1
+
+.. code-block:: cpp
+
+    int TreeDepth(TreeNode* pRoot) {
+            if(pRoot==nullptr)
+                return 0;
+            int left = TreeDepth(pRoot->left);
+            int right = TreeDepth(pRoot->right);
+            
+            return max(left,right)+1;
+    }
+
+
+判断是否为平衡二叉树
+-----------------------------
+::
+
+    输入一棵二叉树，判断该二叉树是否是平衡二叉树。
+    在这里，我们只需要考虑其平衡性，不需要考虑其是不是排序二叉树
+    平衡二叉树（Balanced Binary Tree），具有以下性质：
+    它是一棵空树或它的左右两个子树的高度差的绝对值不超过1，并且左右两个子树都是一棵平衡二叉树。
+
+.. tip:: 
+
+    使用后序遍历的方式遍历二叉树的每个节点，那么在遍历到一个节点之前就已经遍历了它的左、右子树，
+    根据左、右子树的深度判断它是不是平衡的，并得到当前节点的深度，当最后遍历到树的根节点时，也就判断了整棵树是不是平衡二叉树。
+
+.. code-block:: cpp
+
+    bool IsBalanced_Solution(TreeNode* pRoot) {
+            int depth = 0;
+            return IsBalanced(pRoot,&depth);
+    }
+        
+    bool IsBalanced(TreeNode* pRoot,int *pDepth){
+            if(pRoot==nullptr){
+                *pDepth = 0;
+                return true;
+            }
+            int left,right;
+            if(IsBalanced(pRoot->left, &left) && IsBalanced(pRoot->right, &right)){
+                int diff = left - right;
+                if(abs(diff)<=1){
+                    *pDepth = 1+ max(left,right);
+                    return true;
+                }
+            }
+            return false;
+    }

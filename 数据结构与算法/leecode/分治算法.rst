@@ -1,5 +1,6 @@
 分治算法
-================
+========
+
 
 基本思想
 -------------
@@ -14,6 +15,7 @@
 
 以归并排序为例：分解是把数组从中间分成两半；解决是递归地对两半分别排序，长度为1时数组天然有序；合并是把两个有序数组归并成一个有序数组。
 
+
 适用条件
 -------------
 能用分治法解决的问题一般具有以下特征：
@@ -22,6 +24,7 @@
 2. 问题可以分解为若干个规模较小的相同问题
 3. 子问题的解可以合并为原问题的解。这一条是关键，如果合并做不到或代价太大，就不适合用分治
 4. 子问题之间相互独立，不包含公共的子子问题。如果子问题有重叠，分治会做大量重复计算，此时应该用动态规划
+
 
 通用模板
 -------------
@@ -37,6 +40,7 @@
             subResults.push_back(divideAndConquer(sub));  // 递归求解子问题
         return combine(subResults);           // 合并
     }
+
 
 复杂度分析
 -------------
@@ -80,6 +84,7 @@
 
 从矩阵乘法可以看出，减少子问题的个数a（8次降到7次）就能降低复杂度的阶，这正是Strassen算法的出发点。
 
+
 与其他算法的区别
 -------------------
 
@@ -89,6 +94,7 @@
 * **减治法(Decrease and Conquer)**：每次只把问题缩小为一个子问题，例如二分查找和幂运算。
   按照习惯，正文中至少含有两个递归调用的例程才叫分治算法，所以幂运算严格来说属于减治，但通常也放在分治里讨论
 
+
 注意事项
 -------------
 
@@ -96,6 +102,7 @@
 2. 规模较小时改用简单算法。递归有额外开销，例如归并排序、快速排序在小数组时改用插入排序，Strassen算法在N较小时改用普通矩阵乘法
 3. 合并步骤的代价往往决定总复杂度。最近点问题的难点就在于如何把跨越分割线的情况在 :math:`O(N)` 内处理完
 4. 递归深度过大可能导致栈溢出，必要时改写为非递归形式
+
 
 经典问题
 -------------
@@ -105,11 +112,12 @@
 * :ref:`归并排序`
 * :ref:`快速排序`
 * 最大子序列和
-* 数组中的逆序对（在归并排序的合并过程中统计）
+* `数组中的逆序对`_ （在归并排序的合并过程中统计）
 * :ref:`最近点问题`
 * Strassen矩阵乘法
 * 大整数乘法（Karatsuba算法，复杂度 :math:`O(N^{log_{2}3})=O(N^{1.59})` ）
 * :ref:`重建二叉树`
+
 
 幂运算
 -------------
@@ -171,7 +179,6 @@
             res *= base;
         return res;
     }
-
 
 
 .. _最近点问题:
@@ -248,6 +255,67 @@ Strassen算法的时间复杂度为 :math:`O(N^{log_{2}7})=O(N^{2.81})`
 Strassen算法在N不够大时不如矩阵直接乘法，它也不能推广到稀疏矩阵的情况，而且还不容易并行化。
 当用于浮点运算时，它数值上不如经典算法稳定。
 因此，它只有有限的适用性。然而，它却代表着重要的理论上的里程碑。
+
+
+数组中的逆序对
+---------------------
+::
+
+    在数组中的两个数字，如果前面一个数字大于后面的数字，则这两个数字组成一个逆序对。
+    输入一个数组,求出这个数组中的逆序对的总数P。并将P对1000000007取模的结果输出。 即输出P%1000000007
+
+.. tip:: 
+
+    | :ref:`归并排序` 的过程就是，递归划分整个区间为基本相等的左右区间，直到左右区间各只有一个数字，
+      然后就合并两个有序区间。
+    | 先把数组分隔成子数组，统计出子数组内部的逆序对的数目，然后再统计出两个相邻子数组之间的逆序对的数目。
+    | 在统计逆序对的过程中还需要对数组进行排序。
+
+.. code-block:: cpp
+
+    class Solution {
+    public:
+        int InversePairs(vector<int> data) {
+            int length=data.size();
+            if(length<=0)
+                return 0;
+            
+            vector<int> copy=data;
+            long long count=InversePairsCore(data,copy,0,length-1);
+            return count%1000000007;
+        }
+
+        long long InversePairsCore(vector<int> &data,vector<int> &copy,int start,int end)
+        {
+            if(start==end)
+            {
+                copy[start]=data[start];
+                return 0;
+            }
+            int length=(end-start)/2;
+            long long left=InversePairsCore(copy,data,start,start+length);
+            long long right=InversePairsCore(copy,data,start+length+1,end); 
+                
+            int i=start+length;
+            int j=end;
+            int indexcopy=end;
+            long long count=0;
+            while(i>=start&&j>=start+length+1)
+            {
+                if(data[i]>data[j]){
+                    copy[indexcopy--]=data[i--];
+                    count=count+j-start-length;
+                }else{
+                    copy[indexcopy--]=data[j--];
+                }          
+            }
+            for(;i>=start;i--)
+                copy[indexcopy--]=data[i];
+            for(;j>=start+length+1;j--)
+                copy[indexcopy--]=data[j];       
+            return left+right+count;
+        }
+    };
 
 
 :ref:`重建二叉树`

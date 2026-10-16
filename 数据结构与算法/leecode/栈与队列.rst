@@ -1,0 +1,173 @@
+栈与队列
+========
+
+
+两个栈实现队列
+-----------------
+
+:: 
+
+    用两个栈来实现一个队列，完成队列的Push和Pop操作。 队列中的元素为int类型。
+
+
+.. tip:: 
+
+    push操作就直接往stack1中push， pop操作需要分类一下：如果stack2为空，那么需要将stack1中的数据全部转移到stack2中，
+    然后在对stack2进行pop，如果stack2不为空，直接pop就ok。
+
+
+.. code-block:: cpp
+
+    class Solution
+    {
+    public:
+        void push(int node) {
+            stack1.push(node);
+        }
+
+        int pop() {
+            if(stack2.empty()){
+                while(!stack1.empty()){
+                    stack2.push(stack1.top());
+                    stack1.pop();
+                }
+            }
+            int ret = stack2.top();
+            stack2.pop();
+            return ret;
+        }
+
+    private:
+        stack<int> stack1;
+        stack<int> stack2;
+    };
+
+
+包含min函数的栈
+-----------------
+
+::
+
+    定义栈的数据结构，请在该类型中实现一个能够得到栈中所含最小元素的min函数（时间复杂度应为O（1））
+
+.. tip:: 
+
+    创建一个最小值的栈，栈的大小和存储数据的栈相同，其中存储当前栈中的最小值
+
+
+.. code-block:: cpp
+
+    class Solution {
+        stack<int> st;
+        stack<int> mi;
+    public:
+        void push(int value) {
+            st.push(value);
+            if(mi.empty()||value<mi.top())
+                mi.push(value);
+            else
+                mi.push(mi.top());
+        }
+        void pop() {
+            st.pop();
+            mi.pop();
+        }
+        int top() {
+            return st.top();
+        }
+        int min() {
+            return mi.top();
+        }
+    };
+
+
+栈的压入和弹出序列
+---------------------
+
+::
+
+    输入两个整数序列，第一个序列表示栈的压入顺序，请判断第二个序列是否可能为该栈的弹出顺序。
+    假设压入栈的所有数字均不相等。例如序列1,2,3,4,5是某栈的压入顺序，
+    序列4,5,3,2,1是该压栈序列对应的一个弹出序列，但4,3,5,1,2就不可能是该压栈序列的弹出序列。
+    （注意：这两个序列的长度是相等的）
+
+
+.. tip:: 
+
+    如果下一个弹出的数字刚好是栈顶数字，那么直接弹出；如果下一个弹出的数字不在栈顶，
+    则把压栈序列中还没有入栈的数字压入栈，直到把下一个需要弹出的数字压入栈顶为止；
+    如果所有数字都压入栈，然后仍然没有找到下一个弹出的数字，那么该序列不可能是一个弹出序列。
+
+
+.. code-block:: cpp
+
+    bool IsPopOrder(vector<int> pushV,vector<int> popV) {
+            bool res = false;
+            stack<int> st;
+            int i=0,j=0;
+            if(pushV.size()!=popV.size())
+                return false;
+            if(!pushV.empty()&&!popV.empty()){
+                while(j<popV.size()){
+                    if(!st.empty() && st.top()==popV[j]){
+                        st.pop();
+                        j++;
+                    }else{
+                        if(i==pushV.size())
+                            break;
+                        while(st.empty()||st.top()!=popV[j]&&i<pushV.size()){
+                            st.push(pushV[i]);
+                            i++;
+                        }
+                    }
+                }
+                if(st.empty()&&j==popV.size())
+                    res=true;
+            }
+            return res;
+    }
+
+
+滑动窗口的最大值
+---------------------
+::
+
+    给定一个数组和滑动窗口的大小，找出所有滑动窗口里数值的最大值。
+    例如，如果输入数组{2,3,4,2,6,2,5,1}及滑动窗口的大小3，
+    那么一共存在6个滑动窗口，他们的最大值分别为{4,4,6,6,6,5}
+    窗口大于数组长度的时候，返回空
+
+.. tip:: 
+
+    | **单调队列：**
+    | 创建一个双端队列；
+    | 遍历数组的每一个元素，
+    | 如果队列为空，则直接将当前元素加入到队列中。
+    | 如果队列不为空，则让当前元素和队列的最后一个元素比较，
+    | 如果大于，则将队列的最后一个元素删除，然后继续将当前元素和队列的最后一个元素比较
+    | 如果当前元素小于容器的最后一个元素，则直接将当前元素加入到容器的末尾
+    | 如果队列头部的元素已经不属于当前窗口的边界，则应该将头部元素删除
+
+.. code-block:: cpp
+
+    vector<int> maxInWindows(const vector<int>& num, unsigned int size) {
+            vector<int> ret;
+            if (num.size() == 0 || size < 1 || num.size() < size) return ret;
+            int n = num.size();
+            deque<int> dq;
+            for (int i = 0; i < n; ++i) {
+                while (!dq.empty() && num[dq.back()] < num[i]) {
+                    dq.pop_back();
+                }
+                dq.push_back(i);
+                // 判断队列的头部的下标是否过期
+                if (dq.front() + size <= i) {
+                    dq.pop_front();
+                }
+                // 判断是否形成了窗口
+                if (i + 1 >= size) {
+                    ret.push_back(num[dq.front()]);
+                }
+            }
+            return ret;
+    }

@@ -1,0 +1,76 @@
+哈希表
+========
+
+
+第一个只出现一次的字符
+-----------------------------
+在一个字符串(0<=字符串长度<=10000，全部由字母组成)中找到第一个只出现一次的字符,并返回它的位置, 
+如果没有则返回 -1（需要区分大小写）.（从0开始计数）
+如输入“abaccdeff”,则输出1
+
+.. tip:: 
+
+    先统计字符出现的次数，在从前往后遍历字符串，找到只出现一次的字符
+
+.. code-block:: cpp
+
+    int FirstNotRepeatingChar(string str) {
+            unordered_map<char, int> mp;
+            for (const char ch : str) {
+                ++mp[ch];
+            }    
+            for (int i=0; i<str.length(); ++i) {
+                if (mp[str[i]] == 1) return i;
+            }
+            return -1;
+    }
+
+
+字符流中第一个只出现一次的字符
+---------------------------------
+请实现一个函数用来找出字符流中第一个只出现一次的字符。
+例如，当从字符流中只读出前两个字符"go"时，第一个只出现一次的字符是"g"。
+当从该字符流中读出前六个字符“google"时，第一个只出现一次的字符是"l"。
+
+.. tip:: 
+
+    字符占8个字节，总共有256种情况，创建一个长度为256的数组存放第一个只出现一次的字符index
+    数组初始化为-1；从流中读取字符，每读取一个字符index加1，如果该字符只出现一次(即数组中为-1)，
+    将数组对应位置设置为index；如果字符不止出现一次，将数组对应位置设置为-2。
+    遍历数组，数组中大于0的最小数即为index，对应的字符即为第一次出现一次的字符
+
+.. code-block:: cpp
+
+    #include<vector>
+
+    class Solution
+    {
+        int index;
+        int occurrence[256];
+    public:
+        Solution():index(0){
+            for(int i=0;i<256;i++)
+                occurrence[i] = -1;
+        }
+    //Insert one char from stringstream
+        void Insert(char ch) {
+            if(occurrence[ch]==-1)
+                occurrence[ch] = index;
+            else if(occurrence[ch]>=0)
+                occurrence[ch] = -2;
+            index ++;
+        }
+    //return the first appearence once char in current stringstream
+        char FirstAppearingOnce() {
+            char ch = '#';
+            int minIndex = numeric_limits<int>::max();
+            for(int i=0;i<256;i++){
+                if(occurrence[i]>=0 && occurrence[i]<minIndex){
+                    ch = (char)i;
+                    minIndex = occurrence[i];
+                }
+            }
+            return ch;
+        }
+
+    };

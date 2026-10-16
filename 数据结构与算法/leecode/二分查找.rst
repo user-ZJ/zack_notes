@@ -1,11 +1,9 @@
-查找算法
-================
-
 二分查找
-----------------
+========
+
 
 查找值
-```````````````
+---------------
 .. code-block:: cpp
 
     int binary_search(vector<int> nums,int target){
@@ -26,7 +24,7 @@
 
 
 查找左边界
-`````````````
+-------------
 .. code-block:: cpp
 
     int left_bound(vector<int> nums,int target){
@@ -49,7 +47,7 @@
 
 
 查找右边界
-`````````````
+-------------
 .. code-block:: cpp
 
     int right_bound(vector<int> nums,int target){
@@ -72,7 +70,7 @@
 
 
 旋转数组最小值(二分)
-`````````````````````````
+-------------------------
 
 ::
 
@@ -120,7 +118,7 @@
 
 
 旋转数组查找(二分)
-`````````````````````````````
+-----------------------------
 
 ::
 
@@ -158,4 +156,41 @@
                 }
             }
             return -1;
+    }
+
+
+二维数组查找
+---------------
+::
+
+    已知int一个有序矩阵mat,同时给定矩阵的大小n和m以及需要查找的元素x,且矩阵的行和列都是从小到大有序的。
+    设计查找算法返回所查找元素的二元数组，代表该元素的行号和列号(均从零开始)。保证元素互异。
+
+
+.. tip:: 
+
+    | 首先选取矩阵中右上角的数字，如果该数字等于要查找的数字，查找结束，
+    | 如果该数字大于要查找的数组，剔除这个数字所在的列；
+    | 如果该数字小于要查找的数字，剔除这个数字所在的行。
+    | 同理从左下角开始查找也可以
+
+
+.. code-block:: cpp
+
+    vector<int> findElement(vector<vector<int> > mat, int n, int m, int x) {
+            // write code here
+            vector<int> res;
+            int row=0,col=m-1;
+            while(row<n && col>=0){
+                if(mat[row][col]==x){
+                    res.push_back(row);
+                    res.push_back(col);
+                    return res;
+                }else if(mat[row][col]>x){
+                    col--;
+                }else{
+                    row++;
+                }
+            }
+            return res;
     }

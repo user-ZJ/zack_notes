@@ -1,0 +1,151 @@
+数组与矩阵
+==========
+
+
+数组中重复的数字
+-------------------
+
+::
+
+    在一个长度为n的数组里的所有数字都在0~n-1的范围内。
+    数组中某些数字是重复的，但不知道有哪几个数字重复了，也不知道每个数字重复了几次。
+    请找出数组中任意一个重复的数字。
+    例如，如果输入长度为7的数组{2，3，1，0，2，5，3}，那么对应的输出是重复的数字2或者是3。
+
+
+.. tip:: 
+
+    | 数组里所有的数组都是0到n-1的范围内。
+    | 如果数组里没有重复的数字，那么每个数字排序后的数字i都会在下标为i的位置上。
+    | 由于数组中有重复的数字，那么这个位置上就会有多个数字，有些位置上也会没有数字。
+
+    | 从头到尾扫描这个数组的每个数字。当到下标为i的数字时，先比较这个数字m是否等于下标i，
+    | 如果等于那么就扫描下一个数字；如果不是，那它和第m个数字相比较。
+    | 如果和第m个数字一样，则找到重复的数字，因为该数字在第i个位置和第m个位置都出现了；
+    | 如果不是则把该第i位置上的数字和第m个位置上的数字交换，直到在它原本属于的位置上去。
+    | 重复此过程，找到重复的数字。
+
+
+.. code-block:: cpp
+
+    bool duplicate(int nums[],int len,int *duplication){
+        if(nums==nullptr || len<0){
+            return false;
+        }
+        for(int i=0;i<len;i++){
+            if(nums[i]<0 || nums[i]>len-1)
+                return false;
+            while(nums[i]!=i){
+                if(nums[i]==nums[nums[i]]){
+                    *duplication = nums[i];
+                    return true;
+                }else{
+                    swap(nums[i],nums[nums[i]]);
+                }
+            }
+        }
+    }
+
+
+数组中出现次数超过一半的数字(众数)
+-----------------------------------
+leetcode: https://leetcode.cn/problems/majority-element/?envType=study-plan-v2&envId=top-interview-150
+
+::
+
+    数组中有一个数字出现的次数超过数组长度的一半，请找出这个数字。
+    例如输入一个长度为9的数组{1,2,3,2,2,2,5,4,2}。由于数字2在数组中出现了5次，
+    超过数组长度的一半，因此输出2。如果不存在则输出0。
+
+.. tip:: 
+
+    | **解法一：快排思路，时间复杂度为O(n)**
+    | 先在数组中随机选择一个数字，然后调整数组的顺序，使得比选中的数字小的数字都排在它的左边，
+    | 比选中的数字大的数字都排在它的右边，如果选中的数字的下标刚好是n/2,那么这个数字就是数组的中位数；
+    | 如果下标大于n/2，那么中位数位于它的左边，我们可以接着再它的左边部分的数组中查找；
+    | 如果它的下标小于n/2,那么中位数应该位于它的右边，我们可以接着在它的右边部分的数组中查找。
+    
+    | **解法二：根据数组特点找出时间复杂度为O(n)的算法**
+    | 数组中有一个数字出现的次数超过数组长度的一半，也就是说它出现的次数比其他所有数字出现的次数的和还要多。
+    | 因此我们可以考虑在遍历数组的时候保存两个值：一个是数组中的一个数字，另一个是次数；
+    | 当遍历到下一个数字的时候，如果下一个数字和我们之前保存的数字相同，则次数加1；
+    | 如果下一个数字和我们之前保存的数字不同，则次数减1；
+    | 如果次数为0，那么我们需要保存下一个数字，并把次数设为1。
+    | 由于我们要找的数字出现的次数比其他所有数字出现的次数之和还要多，
+    | 那么要找的数字肯定是最后一次把次数设置为1时对应的数字。
+
+.. literalinclude:: code/众数.cpp
+    :language: cpp
+
+
+旋转字符串/数组
+--------------------
+leetcode: https://leetcode.cn/problems/rotate-array/description/?envType=study-plan-v2&envId=top-interview-150
+
+字符串的左旋转操作是把字符串你前面的若干个字符转移到字符串的尾部。
+请定义一个函数实现字符串左旋转操作的功能。
+比如，输入字符串"abcdefg"和数字2，该函数将返回左旋转两位得到的结果"cdefgab"
+
+.. tip:: 
+
+    把字符串分为两个部分，分别翻转这两部分，再翻转整个字符串
+
+.. literalinclude:: code/旋转数组.cpp
+    :language: cpp
+
+
+顺时针打印矩阵
+--------------------
+输入一个矩阵，按照从外向里以顺时针的顺序依次打印出每一个数字，例如，如果输入如下4 X 4矩阵： 
+
+| 1 2 3 4 
+| 5 6 7 8 
+| 9 10 11 12 
+| 13 14 15 16 
+| 则依次打印出数字1,2,3,4,8,12,16,15,14,13,9,5,6,7,11,10.
+
+
+.. code-block:: cpp
+
+    vector<int> printMatrix(vector<vector<int> > matrix) {
+            vector<int> res;
+            if(matrix.empty()) return res;
+            int left=0,top=0;
+            int right = matrix[0].size()-1,bottom=matrix.size()-1;
+            while(left<=right && top<=bottom){
+                //上
+                for(int i=left;i<=right;i++) res.push_back(matrix[top][i]);
+                top ++;
+                //右
+                for(int i=top;i<=bottom;i++) res.push_back(matrix[i][right]);
+                right--;
+                //下 只有一行时不用走回来，前面已经走了
+                for(int i=right;i>=left&& top-1!=bottom;i--) res.push_back(matrix[bottom][i]);  
+                bottom--;
+                //左  只有一列时不用走回来，前面已经走了
+                for(int i=bottom;i>=top&&left-1!=right;i--) res.push_back(matrix[i][left]);
+                left++;   
+            }
+            return res;
+    }
+
+
+除自身以外数组的乘积
+---------------------------
+leetcode: https://leetcode.cn/problems/product-of-array-except-self/description/?envType=study-plan-v2&envId=top-interview-150
+
+给你一个整数数组 nums，返回 数组 answer ，其中 answer[i] 等于 nums 中除 nums[i] 之外其余各元素的乘积 。
+
+题目数据 保证 数组 nums之中任意元素的全部前缀元素和后缀的乘积都在  32 位 整数范围内。
+
+请 不要使用除法，且在 O(n) 时间复杂度内完成此题。
+
+.. tip::
+
+    | 1. 初始化两个空数组 L 和 R。对于给定索引 i，L[i] 代表的是 i 左侧所有数字的乘积，R[i] 代表的是 i 右侧所有数字的乘积。
+    | 2. 我们需要用两个循环来填充 L 和 R 数组的值。对于数组 L，L[0] 应该是 1，因为第一个元素的左边没有元素。对于其他元素：L[i] = L[i-1] * nums[i-1]。
+    | 3. 同理，对于数组 R，R[length-1] 应为 1。length 指的是输入数组的大小。其他元素：R[i] = R[i+1] * nums[i+1]。
+    | 4. 当 R 和 L 数组填充完成，我们只需要在输入数组上迭代，且索引 i 处的值为：L[i] * R[i]。
+
+.. literalinclude:: code/除自身以外数组的乘积.cpp
+    :language: cpp
