@@ -14,7 +14,7 @@
     result = []
     def backtrack(路径, 选择列表):
         if 满足结束条件:
-            result.add(路径)
+            result.append(路径[:])   # 存入路径的副本，否则后续撤销选择会修改已存入的结果
             return
         for 选择 in 选择列表:
             做选择
@@ -30,9 +30,10 @@
 剪枝是回溯算法中常用的优化方法，可以减少不必要的搜索，提高算法效率。
 剪枝的具体实现方式因问题而异，但是有一些常用的剪枝技巧可以参考。
 
-* 排序剪枝：对于需要枚举的元素，先进行排序，然后在枚举的过程中，如果发现当前元素与上一个元素相同，
-  就跳过。这样可以避免生成重复的解。
-* 双向剪枝：在搜索过程中，可以同时从起点和终点开始搜索，如果两个搜索相遇了，就可以停止搜索。这样可以减少搜索的次数。
+* 排序去重：对于含重复元素的问题，先进行排序，使相同元素相邻。在同一层枚举时，如果当前元素与上一个元素相同，
+  且上一个元素在本层已经被选过又撤销了，就跳过。这样可以避免生成重复的解。
+  注意只能跳过同一层的重复选择，不能跳过不同层（即路径上）的相同元素，否则会漏掉合法的解。
+  见 `有重复项数字的全排列`_ 。
 * 可行性剪枝：在搜索过程中，如果发现当前状态已经不可能得到满足条件的解，就可以停止搜索。这样可以减少不必要的搜索。
 * 最优性剪枝：在搜索过程中，如果发现当前状态已经不可能得到更优的解，就可以停止搜索。这样可以减少不必要的搜索。
 * 记忆化剪枝：在搜索过程中，可以使用一个哈希表来记录已经搜索过的状态，如果发现当前状态已经搜索过了，
@@ -41,6 +42,10 @@
   例如，在八皇后问题中，可以限制每一行、每一列和每一条对角线上只能有一个皇后，这样可以减少搜索的次数。
 
 以上是常用的剪枝技巧，具体实现方式因问题而异。在实际应用中，可以根据问题的特点，选择合适的剪枝方法。
+剪枝条件越早生效越好：在做选择之前就判断能否得到合法解，比走到决策树底层再检查要少搜索很多分支。
+
+另外，双向搜索（同时从起点和终点开始搜索，两边相遇时停止）也常被用来减少搜索量，
+但它严格来说是一种搜索策略而不是回溯中的剪枝，一般与BFS配合使用，并且要求事先知道目标状态。
 
 矩阵中的路径
 ------------------------
@@ -52,35 +57,23 @@
     a b t g
     c f c s
     j d e h
-    矩阵中包含一条字符串"bcced"的路径，但是矩阵中不包含"abcb"路径，
-    因为字符串的第一个字符b占据了矩阵中的第一行第二个格子之后，路径不能再次进入该格子。
+    矩阵中包含一条字符串"bfce"的路径，但是矩阵中不包含"abfb"路径，
+    因为字符串的第二个字符b占据了矩阵中的第一行第二个格子之后，路径不能再次进入该格子。
 
 .. tip:: 
 
     | 创建一个矩阵记录原矩阵中元素是否被访问
-    | 遍历矩阵中的所有原始，每个元素都有可能作为起点
+    | 遍历矩阵中的所有元素，每个元素都有可能作为起点
     | 从起点向上下左右四个方向查找
     | 结束条件：匹配到字符串
+    | 回溯：四个方向都查找失败后，把当前格子重新标记为未访问，让其他路径可以经过它
 
 
 .. code-block:: cpp
 
-    bool hasPath(string matrix, int rows, int cols, string str) {
-            // write code here
-            if(matrix.length()==0 || rows<=0 || cols<=0 || str.length()==0)
-                return false;
-            vector<vector<bool>> visit(rows,vector<bool>(cols));
-            for(int i=0;i<rows;i++){
-                for(int j=0;j<cols;j++){
-                    if(dfs(matrix,i,j,0,rows,cols,str,visit))
-                        return true;
-                }
-            }
-            return false;
-    }
-    // k表示的是查找到字符串word的第几个字符
+    // k表示的是查找到字符串str的第几个字符
     bool dfs(const string &matrix,int i,int j,int k,int rows,int cols,
-                string &str,vector<vector<bool>> &visit){
+                const string &str,vector<vector<bool>> &visit){
             int pos = i*cols+j;
             // 检查边界条件
             if(i<0||i>=rows||j<0||j>=cols||visit[i][j]==true||matrix[pos]!=str[k])
@@ -97,6 +90,18 @@
             visit[i][j]=false; // 退出(i,j)位置
             return false;
     }
+    bool hasPath(string matrix, int rows, int cols, string str) {
+            if(matrix.length()==0 || rows<=0 || cols<=0 || str.length()==0)
+                return false;
+            vector<vector<bool>> visit(rows,vector<bool>(cols));
+            for(int i=0;i<rows;i++){
+                for(int j=0;j<cols;j++){
+                    if(dfs(matrix,i,j,0,rows,cols,str,visit))
+                        return true;
+                }
+            }
+            return false;
+    }
 
 机器人的运动范围
 -----------------------
@@ -110,19 +115,13 @@
 
 .. tip:: 
 
-    | 结束条件: 越界或坐标的数位之和大于k
+    | 结束条件: 越界、已访问过或坐标的数位之和大于k
+    | 注意：本题是求连通区域的格子数（flood fill），每个格子只需统计一次，
+    | 所以访问后不需要撤销标记，这一点与标准的回溯框架不同
 
 
 .. code-block:: cpp
 
-    int movingCount(int threshold, int rows, int cols) {
-            if(threshold<=0)
-                return 0;
-            vector<vector<int>> mask(rows,vector<int>(cols,-1));
-            int res = 0;
-            dfs(0,0,threshold,rows,cols,res,mask);
-            return res;
-    }
     int check(int n){
             int sum=0;
             while(n){
@@ -143,6 +142,14 @@
             dfs(x,y+1,threshold,r,c,res,mask);
             dfs(x,y-1,threshold,r,c,res,mask);
     }
+    int movingCount(int threshold, int rows, int cols) {
+            if(threshold<0 || rows<=0 || cols<=0)  // threshold为0时(0,0)仍可进入
+                return 0;
+            vector<vector<int>> mask(rows,vector<int>(cols,-1));
+            int res = 0;
+            dfs(0,0,threshold,rows,cols,res,mask);
+            return res;
+    }
 
 二叉树中和为某一值的路径
 -----------------------------
@@ -161,26 +168,26 @@
 
 .. code-block:: cpp
 
-    vector<vector<int> > FindPath(TreeNode* root,int expectNumber) {
-            vector<vector<int>> result;
-            vector<int> path;
-            dfs(root,expectNumber,result,path);
-            return result;
-    }
+    // sum按值传递，每层递归各自持有剩余的和，返回时不需要恢复；path按引用传递，需要撤销选择
     void dfs(TreeNode *root, int sum, vector<vector<int>> &result, vector<int> &path){
             if(root == NULL){
                 return;
             }
             sum -= root->val;
             path.push_back(root->val);
-            //如果是叶子节点，且路劲上节点值的和等于输入的值
+            //如果是叶子节点，且路径上节点值的和等于输入的值
             if(sum == 0 && root->left == NULL && root->right == NULL){
                 result.push_back(path);
             }
             dfs(root->left,sum, result,path);
             dfs(root->right,sum,result,path);
             path.pop_back();
-            sum += root->val;
+    }
+    vector<vector<int> > FindPath(TreeNode* root,int expectNumber) {
+            vector<vector<int>> result;
+            vector<int> path;
+            dfs(root,expectNumber,result,path);
+            return result;
     }
 
 
@@ -189,6 +196,12 @@
 ::
 
     给出一组数字(不重复)，返回该组数字的所有排列。结果以字典序升序排列。
+
+.. tip::
+
+    | 交换法：依次把每个元素交换到index位置，再递归求index之后的排列
+    | 交换法生成的排列不是字典序，例如[1,2,3]会得到123,132,213,231,321,312（321在312之前），
+    | 所以最后需要对结果排序。也可以用下面 `有重复项数字的全排列`_ 中的used数组写法，对有序输入直接按字典序生成
 
 .. code-block:: cpp
 
@@ -212,11 +225,11 @@
         }
 
         vector<vector<int> > permute(vector<int>& num) {
-            //先按字典序排序
-            sort(num.begin(), num.end());
             vector<vector<int> > res;
             //递归获取
             recursion(res, num, 0);
+            //交换法得到的结果不是字典序，需要排序
+            sort(res.begin(), res.end());
             return res;
         }
     };
@@ -227,31 +240,45 @@
 
     给出一组可能包含重复项的数字，返回该组数字的所有排列。结果以字典序升序排列。
 
+.. tip::
+
+    | 方法一（used数组 + 排序去重）：先排序使相同元素相邻。
+    | nums[i]==nums[i-1] 且 used[i-1]==false，说明nums[i-1]在本层刚被选过又撤销了，
+    | 再选nums[i]会得到相同的排列，所以跳过。对有序输入，生成的结果天然是字典序。
+
 .. code-block:: cpp
 
-    void permute(vector<int>& nums, vector<vector<int>>& res, vector<int>& path, 
-                    unordered_set<int>& used) {
+    void permute(const vector<int>& nums, vector<vector<int>>& res, vector<int>& path,
+                    vector<bool>& used) {
         if (path.size() == nums.size()) {
             res.push_back(path);
             return;
         }
         for (int i = 0; i < nums.size(); i++) {
-            if (used.count(i) || (i > 0 && nums[i] == nums[i-1] && !used.count(i-1))) continue;
-            used.insert(i);
+            if (used[i]) continue;
+            if (i > 0 && nums[i] == nums[i-1] && !used[i-1]) continue; // 同一层去重
+            used[i] = true;
             path.push_back(nums[i]);
             permute(nums, res, path, used);
             path.pop_back();
-            used.erase(i);
+            used[i] = false;
         }
     }
 
     vector<vector<int>> permute(vector<int>& nums) {
+        sort(nums.begin(), nums.end()); // 去重条件依赖相同元素相邻，必须先排序
         vector<vector<int>> res;
         vector<int> path;
-        unordered_set<int> used;
+        vector<bool> used(nums.size(), false);
         permute(nums, res, path, used);
         return res;
     }
+
+.. tip::
+
+    | 方法二（交换法 + 每层用集合去重）：交换后再换回来会打乱start之后元素的顺序，
+    | 所以不能只比较nums[i]和nums[start]来去重，而要用一个集合记录本层已经放到start位置上的值。
+    | 这种写法不要求输入有序，但结果不是字典序，如有需要最后排序。
 
 .. code-block:: cpp
 
@@ -260,8 +287,10 @@
             res.push_back(nums);
             return;
         }
+        unordered_set<int> seen; // 本层已经放到start位置上的值
         for (int i = start; i < nums.size(); i++) {
-            if (i != start && nums[i] == nums[start]) continue; // 去重
+            if (seen.count(nums[i])) continue;
+            seen.insert(nums[i]);
             swap(nums[i], nums[start]);
             permute(nums, res, start + 1);
             swap(nums[i], nums[start]);
@@ -270,8 +299,8 @@
 
     vector<vector<int>> permute(vector<int>& nums) {
         vector<vector<int>> res;
-        sort(nums.begin(), nums.end()); // 排序，方便去重
         permute(nums, res, 0);
+        sort(res.begin(), res.end()); // 交换法得到的结果不是字典序
         return res;
     }
 
@@ -288,6 +317,9 @@
     | 思路：递归法，问题转换为先固定第一个字符，求剩余字符的排列；求剩余字符排列时跟原问题一样。
     | 1. 遍历出所有可能出现在第一个位置的字符（即：依次将第一个字符同后面所有字符交换）；
     | 2. 固定第一个字符，求后面字符的排列（即：在第1步的遍历过程中，插入递归进行实现）。
+    | 去重：str按值传递且交换后不换回，这样在有序输入下，str[num]之后的字符始终保持有序，
+    | 与str[num]相同的字符会连续出现，跳过它们即可去重，并且结果按字典序生成。
+    | 这个技巧依赖输入有序，所以必须先排序，否则像"aba"这样的输入会产生重复的排列。
 
 .. code-block:: cpp
 
@@ -300,6 +332,7 @@
             int n = str.size();
             if(num==n-1){
                 res.push_back(str);
+                return;
             }
             for(int i=num;i<n;i++){
                 if(str[num]!=str[i] || num==i){
@@ -310,6 +343,7 @@
         }
         
         vector<string> Permutation(string str) {
+            sort(str.begin(), str.end()); // 去重和字典序都依赖输入有序
             subPermutation(str, 0);
             return res;
         }
@@ -322,7 +356,7 @@
 
     有N个待检测物品，编号为1到N，lastCheck[N]数组表示每个物品最晚被检测的序号
     另有一个二维数组表示物品a必须在物品b之前检测；depends[][] = {{1,2},{3,4}....
-    注：每次只能检测一个物品，求每个物品最早被检测的需要
+    注：每次只能检测一个物品，求每个物品最早被检测的序号
 
     例如：
     输入：
@@ -333,59 +367,57 @@
 
 .. tip:: 
 
-    | 使用回溯算法计算所有可能得检测组合，并在过程中根据限制条件进行剪枝
-    | 获取所有有效的输出序列，计算每个物品最早检测需要
+    | 使用回溯算法枚举所有可能的检测顺序，并在过程中根据限制条件进行剪枝：
+    | 1. 物品x放在第pos个检测，若pos超过lastCheck[x]，则跳过
+    | 2. 物品x的所有前置物品（必须在x之前检测的物品）都已检测过，才能检测x
+    | 每得到一个合法的检测顺序，就更新每个物品最早的检测序号，不需要保存所有的顺序
+    | 第2条剪枝在放入x时就检查前置条件，比"放入前置物品时再检查x是否已检测"更早排除不合法的分支
 
 .. code-block:: cpp
 
-    void permute(const vector<int> &nums, vector<vector<int>> &res, vector<int> &path, 
-                unordered_set<int> &used,
-                std::vector<int> &last, std::vector<std::pair<int, int>> &limits) {
-        if (path.size() == nums.size()) {
-            res.push_back(path);
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    // last[x-1]：物品x最晚的检测序号；depends中的{a,b}表示a必须在b之前检测
+    void dfs(int n, vector<int> &path, vector<bool> &used, const vector<int> &last,
+             const vector<pair<int, int>> &depends, vector<int> &earliest) {
+        if (path.size() == n) {
+            for (int j = 0; j < n; j++)
+                earliest[path[j] - 1] = min(earliest[path[j] - 1], j + 1);
             return;
         }
-        for (int i = 0; i < nums.size(); i++) {
-            if (used.count(i) || (i > 0 && nums[i] == nums[i - 1] && !used.count(i - 1))) continue;
-            // 添加限制条件
-            if (last[nums[i] - 1] <= path.size()) continue;
-            bool bk = false;
-            for (const auto &l : limits) {
-            if (nums[i] == l.first and std::find(path.begin(), path.end(), l.second) != path.end()) {
-                bk = true;
-                break;
+        int pos = path.size() + 1;  // 下一个被检测物品的序号
+        for (int x = 1; x <= n; x++) {
+            if (used[x] || pos > last[x - 1]) continue;
+            bool ready = true;
+            for (const auto &d : depends) {
+                if (d.second == x && !used[d.first]) {  // x的前置物品还没检测
+                    ready = false;
+                    break;
+                }
             }
-            }
-            if (bk) continue;
-            used.insert(i);
-            path.push_back(nums[i]);
-            permute(nums, res, path, used,last, limits);
+            if (!ready) continue;
+            used[x] = true;
+            path.push_back(x);
+            dfs(n, path, used, last, depends, earliest);
             path.pop_back();
-            used.erase(i);
+            used[x] = false;
         }
     }
 
-    vector<vector<int>> permute(vector<int> &nums, std::vector<int> &last, 
-                                std::vector<std::pair<int, int>> &limits) {
-        vector<vector<int>> res;
+    int main() {
+        vector<int> last{4, 5, 2, 5, 4};
+        vector<pair<int, int>> depends{{1, 2}, {3, 2}, {5, 1}, {3, 4}, {3, 1}};
+        int n = last.size();
         vector<int> path;
-        unordered_set<int> used;
-        permute(nums, res, path, used, last, limits);
-        return res;
-    }
-
-    int main(int argc, char *argv[]) {
-        std::vector<int> last{4, 5, 2, 5, 4};
-        std::vector<std::pair<int, int>> limits = {{1, 2}, {3, 2}, {5, 1}, {3, 4}, {3, 1}};
-        std::vector<int> p{1, 2, 3, 4, 5};
-
-        // 计算所有可能输出路径
-        auto res = permute(p,last,limits);
-        std::vector<int> mincheck(p.size(),p.size());
-        for (int i = 0; i < res.size(); i++) {
-            for(int j=0;j<res[i].size();j++)
-            mincheck[res[i][j]-1] = std::min(mincheck[res[i][j]-1],j+1);
-        }
+        vector<bool> used(n + 1, false);
+        vector<int> earliest(n, n + 1);  // n+1表示不存在合法的检测顺序
+        dfs(n, path, used, last, depends, earliest);
+        for (int x : earliest)
+            cout << x << " ";  // 3 4 1 2 1
+        cout << endl;
         return 0;
     }
 

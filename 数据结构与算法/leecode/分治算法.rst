@@ -1,6 +1,116 @@
 分治算法
 ================
 
+基本思想
+-------------
+分治(Divide and Conquer)：将规模为N的问题分解为若干个规模较小、相互独立、且与原问题形式相同的子问题，
+递归地求解这些子问题，然后将子问题的解合并得到原问题的解。
+
+分治算法在每一层递归上都有三个步骤：
+
+1. **分解(Divide)**：将原问题分解为若干个规模较小的子问题
+2. **解决(Conquer)**：递归地求解各个子问题；当子问题足够小时直接求解（即递归出口，也叫基本情况）
+3. **合并(Combine)**：将各个子问题的解合并为原问题的解
+
+以归并排序为例：分解是把数组从中间分成两半；解决是递归地对两半分别排序，长度为1时数组天然有序；合并是把两个有序数组归并成一个有序数组。
+
+适用条件
+-------------
+能用分治法解决的问题一般具有以下特征：
+
+1. 问题规模缩小到一定程度后可以很容易地解决
+2. 问题可以分解为若干个规模较小的相同问题
+3. 子问题的解可以合并为原问题的解。这一条是关键，如果合并做不到或代价太大，就不适合用分治
+4. 子问题之间相互独立，不包含公共的子子问题。如果子问题有重叠，分治会做大量重复计算，此时应该用动态规划
+
+通用模板
+-------------
+
+.. code-block:: cpp
+
+    Result divideAndConquer(Problem P) {
+        if (P.size() <= threshold)            // 基本情况：规模足够小，直接求解
+            return solveDirectly(P);
+        vector<Problem> subs = divide(P);     // 分解
+        vector<Result> subResults;
+        for (auto& sub : subs)
+            subResults.push_back(divideAndConquer(sub));  // 递归求解子问题
+        return combine(subResults);           // 合并
+    }
+
+复杂度分析
+-------------
+设分治算法把规模为N的问题分成a个规模为N/b的子问题，分解与合并的代价为 :math:`f(N)` ，则运行时间满足递推式：
+
+.. math::
+
+    T(N) = aT(N/b) + f(N)
+
+**主定理(Master Theorem)** ：当 :math:`f(N)=\Theta(N^k)` ，其中 :math:`a\geq1, b>1` 时：
+
+* 若 :math:`a>b^k` ，则 :math:`T(N)=O(N^{log_{b}a})` ：子问题的总代价占主导
+* 若 :math:`a=b^k` ，则 :math:`T(N)=O(N^{k}logN)` ：每一层代价相同，共 :math:`logN` 层
+* 若 :math:`a<b^k` ，则 :math:`T(N)=O(N^k)` ：顶层的分解与合并代价占主导
+
+常见分治算法的复杂度：
+
+.. list-table::
+    :header-rows: 1
+
+    * - 算法
+      - 递推式
+      - 复杂度
+    * - 二分查找、幂运算
+      - :math:`T(N)=T(N/2)+O(1)`
+      - :math:`O(logN)`
+    * - 归并排序、最近点问题、最大子序列和
+      - :math:`T(N)=2T(N/2)+O(N)`
+      - :math:`O(NlogN)`
+    * - 分块矩阵乘法（8次子乘法）
+      - :math:`T(N)=8T(N/2)+O(N^2)`
+      - :math:`O(N^3)`
+    * - Strassen矩阵乘法
+      - :math:`T(N)=7T(N/2)+O(N^2)`
+      - :math:`O(N^{log_{2}7})=O(N^{2.81})`
+    * - 快速排序（最坏情况）
+      - :math:`T(N)=T(N-1)+O(N)`
+      - :math:`O(N^2)`
+
+快速排序的最坏情况不满足主定理的形式（子问题规模是N-1而不是N/b），需要直接展开递推式求解。
+
+从矩阵乘法可以看出，减少子问题的个数a（8次降到7次）就能降低复杂度的阶，这正是Strassen算法的出发点。
+
+与其他算法的区别
+-------------------
+
+* **动态规划**：同样把问题分解为子问题，但子问题是重叠的，于是把子问题的解记录在表中避免重复计算。
+  例如斐波那契数列直接用分治递归求解是指数级复杂度
+* **贪心算法**：每一步只做当前看来最优的选择，不需要递归求解子问题再合并
+* **减治法(Decrease and Conquer)**：每次只把问题缩小为一个子问题，例如二分查找和幂运算。
+  按照习惯，正文中至少含有两个递归调用的例程才叫分治算法，所以幂运算严格来说属于减治，但通常也放在分治里讨论
+
+注意事项
+-------------
+
+1. 子问题的规模要尽量均衡。快速排序的枢纽元选得不好时，子问题一大一小，复杂度会退化到 :math:`O(N^2)`
+2. 规模较小时改用简单算法。递归有额外开销，例如归并排序、快速排序在小数组时改用插入排序，Strassen算法在N较小时改用普通矩阵乘法
+3. 合并步骤的代价往往决定总复杂度。最近点问题的难点就在于如何把跨越分割线的情况在 :math:`O(N)` 内处理完
+4. 递归深度过大可能导致栈溢出，必要时改写为非递归形式
+
+经典问题
+-------------
+
+* 二分查找
+* 幂运算
+* :ref:`归并排序`
+* :ref:`快速排序`
+* 最大子序列和
+* 数组中的逆序对（在归并排序的合并过程中统计）
+* :ref:`最近点问题`
+* Strassen矩阵乘法
+* 大整数乘法（Karatsuba算法，复杂度 :math:`O(N^{log_{2}3})=O(N^{1.59})` ）
+* :ref:`重建二叉树`
+
 幂运算
 -------------
 
@@ -28,7 +138,7 @@
 ::
 
     给定一个double类型的浮点数base和int类型的整数exponent。求base的exponent次方。
-    不得使用库函数，同时需要考虑大数问题。
+    保证base和exponent不同时为0。不得使用库函数，同时不需要考虑大数问题。
 
 ::
 
@@ -39,16 +149,18 @@
 
 .. code-block:: cpp
 
+    double PowerExponent(double base,long long absExp);
+
     double Power(double base, int exponent) {
         if(base==0.0 && exponent<0) //对0求倒数的情况
             return 0.0;
-        int absExp = abs(exponent);
+        long long absExp = llabs((long long)exponent);  //避免abs(INT_MIN)溢出
         double res = PowerExponent(base,absExp);
         if(exponent<0)
             res = 1.0/res;
         return res;
     }
-    double PowerExponent(double base,int absExp){
+    double PowerExponent(double base,long long absExp){
         if(absExp==0)
             return 1.0;
         if(absExp==1)
@@ -66,7 +178,7 @@
 
 最近点问题
 -----------------
-输入是平面上的点列P。如果p1=(x1,y1)和p2=(x2,y2)，那么p1和p2间的欧几里得距离为 :math:`\sqrt{(x1-x1)^2+(y1-y2)^2}` 。
+输入是平面上的点列P。如果p1=(x1,y1)和p2=(x2,y2)，那么p1和p2间的欧几里得距离为 :math:`\sqrt{(x1-x2)^2+(y1-y2)^2}` 。
 我们要找出一对最近的点。有可能两个点位于同一个位置，这种情况下这两个点就是最近，他们的距离为零。
 
 算法解法：
@@ -75,10 +187,12 @@
 2. 将平面上的点按照Y轴排序存放在表Q中
 3. 将点集沿着X分成两半： :math:`P_L和P_R`,根据 :math:`P_L和P_R` 依序生成 :math:`Q_L和Q_R`
 4. 最近的两个点要么都在 :math:`P_L` 中，要么都在 :math:`P_R` 中，要么 :math:`P_L和P_R` 中各一个，把这三个距离分别叫做 :math:`d_L,d_R,d_C`
-5. :math:`d_L,d_R` 可以递归计算
+5. :math:`d_L,d_R` 可以递归计算；当点数不超过3时直接暴力计算，作为递归出口
 6. 计算 :math:`d_C` 。令 :math:`\delta=min(d_L,d_R)` ，如果 :math:`d_C对\delta` 有所改进，那么 :math:`d_C` 的两个点必然在分割线的 :math:`\delta` 距离之内；把这个区域叫作带(strip)
 7. 扫描表Q，删除x坐标不在带内的所有点，得到带内所有点按y坐标排序的表
-8. 计算带内所有点的距离，且两个点的x,y坐标差值均小于 :math:`\delta`
+8. 按y坐标顺序扫描带内的点，每个点只与其后的点比较，一旦两点y坐标差值 :math:`\geq\delta` 就停止。
+   可以证明每个点最多只需与其后约7个点比较，因此这一步为 :math:`O(N)`
+9. 最近距离为 :math:`min(d_L,d_R,d_C)` ，整个算法的时间复杂度为 :math:`O(NlogN)`
 
 
 矩阵乘法
