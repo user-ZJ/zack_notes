@@ -14,12 +14,13 @@ https://www.cs.usfca.edu/~galles/visualization/Algorithms.html
 结构性质
 ```````````````
 
-堆是一棵完全二叉树，底层元素从左到有填入。
+堆是一棵完全二叉树，底层元素从左到右填入。
 
-完全二叉树可以用一个数组表示，而不需要使用链
+完全二叉树可以用一个数组表示，而不需要使用链。
 
 .. image:: /images/数据结构/heap1.jpg
 
+数组的位置0不使用，根节点存放在位置1。
 对于数组中任一位置i上的元素，其左儿子在位置2i上，右儿子在(2i+1)位置上，它的父节点在i/2(向下取整)位置上。
 
 因此，这里不仅不需要链，而且遍历该树所需要的操作也极简单，大部分的计算机上都运行得非常快。
@@ -29,7 +30,8 @@ https://www.cs.usfca.edu/~galles/visualization/Algorithms.html
 
 堆序性质
 ```````````````````
-在堆中，对于每一个节点X，X的父亲中的键小于等于X中的键，根节点除外(它没有父亲)。这样可以在常数时间执行findMin
+在堆中，对于每一个节点X，X的父亲中的键小于等于X中的键，根节点除外(它没有父亲)。这样最小元总在根上，可以在常数时间执行findMin。
+这种堆称为最小堆；反过来，父亲的键大于等于儿子的键时称为最大堆。
 
 insert
 ```````````````
@@ -38,7 +40,8 @@ insert
 
 这种策略叫做 **上滤（percolate up）**:新元素在堆中上滤直到找到正确的位置。
 
-插入的最坏情况时间为O(logN)
+插入的最坏情况时间为O(logN)（新元素是新的最小元，一直上滤到根）。
+平均情况下，一次插入只需约2.607次比较，元素平均只上移1.607层，因此平均时间为O(1)。
 
 .. image:: /images/数据结构/heap2.jpg
 
@@ -48,11 +51,24 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
 当删除最小元时，在根节点建立一个空穴。由于现在堆少了一个元素，因此堆中最后一个元素X必须移动到该堆的某个地方。
 如果X可以被放入到空穴中，那么deleteMin完成。
 不过这一般不太可能，因此我们将空穴的两个儿子中较小者移入空穴，这样空穴向下推了一层。重复该步骤，直到X可以被放入到空穴中。
-因此我们的作法是将X置于沿着根开始包含最小儿子的一条路径上的一个正确位置。这种策略叫做 **下虑(percolate down)** 。
+因此我们的作法是将X置于沿着根开始包含最小儿子的一条路径上的一个正确位置。这种策略叫做 **下滤(percolate down)** 。
 
-算法实现时需要注意节点只有一个儿子的情况。
+算法实现时需要注意节点只有一个儿子的情况：当hole*2等于currentSize时，节点只有左儿子，此时不能访问右儿子，
+但左儿子仍然需要参与比较，所以循环条件是hole*2 <= currentSize。
+
+deleteMin的最坏情况和平均情况时间都是O(logN)。
 
 .. image:: /images/数据结构/heap3.jpg
+
+buildHeap
+```````````````````
+用N个元素构造堆时，可以先把元素按任意顺序放入数组，再从最后一个非叶子节点(位置N/2)开始，到根节点为止，依次对每个节点执行下滤。
+
+虽然每次下滤最多花费O(logN)，但大部分节点都在树的底层，下滤的距离很短。
+可以证明所有节点的高度之和为O(N)，因此buildHeap的时间复杂度为O(N)，比逐个insert的O(NlogN)要快。
+
+代码实现
+```````````````````
 
 .. code-block:: cpp
 
@@ -65,7 +81,7 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
             return currentSize == 0;
         }
         const Comparable &findMin() const {
-            return array[currentSize];
+            return array[1];
         }
         void insert(const Comparable &x);
         void deleteMin();
@@ -90,10 +106,10 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
 
     template <typename Comparable>
     BinaryHeap<Comparable>::BinaryHeap(const std::vector<Comparable> &items) {
-        currentSize = items.size();
+        currentSize = 0;
         array.resize(items.size()+100);
         for(auto &cmp:items){
-            array[++currentSize] = cmp;
+            array[++currentSize] = cmp;  // 位置0不使用，从1开始存放
         }
         buildHeap();
     }
@@ -112,7 +128,7 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
     template <typename Comparable>
     void BinaryHeap<Comparable>::deleteMin() {
         if (isEmpty()) return;
-        array[1] = array(currentSize--);
+        array[1] = array[currentSize--];
         percolateDown(1);
     }
 
@@ -120,7 +136,7 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
     void BinaryHeap<Comparable>::deleteMin(Comparable &minItem) {
         if (isEmpty()) return;
         minItem = array[1];
-        array[1] = array(currentSize--);
+        array[1] = array[currentSize--];
         percolateDown(1);
     }
 
@@ -128,13 +144,14 @@ deleteMin类似于插入的方式处理。找出最小元素是容易的(根元�
     void BinaryHeap<Comparable>::percolateDown(int hole) {
         int child;
         Comparable tmp = array[hole];
-        for (; hole * 2 < currentSize; hole = child) {
+        for (; hole * 2 <= currentSize; hole = child) {
             child = hole * 2;
-            if (child != currentSize && array[child] > array[child + 1]) { child++; }
+            // child == currentSize 时只有左儿子
+            if (child != currentSize && array[child + 1] < array[child]) { child++; }
             if (array[child] < tmp) {
-            array[hole] = array[child];
+                array[hole] = array[child];
             } else {
-            break;
+                break;
             }
         }
         array[hole] = tmp;

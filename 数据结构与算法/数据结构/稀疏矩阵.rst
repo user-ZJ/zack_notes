@@ -1,7 +1,9 @@
 稀疏矩阵
 ===================
 
-SpMM:sparsedense matrix multiplication
+SpMM: sparse-dense matrix multiplication，稀疏矩阵与稠密矩阵相乘。
+
+下文中矩阵大小为m × n（m行n列），NNZ(number of non-zeros)表示矩阵中非零元素的个数。
 
 COO(coordinate) Format
 ----------------------------
@@ -36,9 +38,12 @@ Compressed sparse row (CSR, CRS or Yale format) Format
 
 使用三个（一维）数组(Values, COL_INDEX, ROW_INDEX)以行形式存储稀疏m × n矩阵M.
 
-* Values:存储非零值，长度为m
-* COL_INDEX:存储Values中值得列索引，长度为m
-* ROW_INDEX:长度为m + 1,每一行数据在Values数组中的起始索引和结束索引,如：Values中的集合[ROW_INDEX[i],ROW_INDEX[i+1])表示第i行的数据
+* Values:存储非零值（从左到右，然后从上到下），长度为NNZ
+* COL_INDEX:存储Values中值的列索引，长度为NNZ
+* ROW_INDEX:长度为m + 1,每一行数据在Values数组中的起始索引和结束索引,如：Values中的集合[ROW_INDEX[i],ROW_INDEX[i+1])表示第i行的数据，
+  ROW_INDEX[i+1]-ROW_INDEX[i]即为第i行非零元素的个数，ROW_INDEX[m]等于NNZ
+
+与COO相比，CSR把行索引从NNZ个压缩成了m+1个，而且可以直接定位到任意一行，适合按行访问和矩阵向量乘法。
 
 ::
 
@@ -59,11 +64,13 @@ Compressed sparse column (CSC or CCS) format
 -----------------------------------------------
 **列压缩格式**
 
-和行压缩格式类似，使用三个（一维）数组(Values, COL_INDEX, ROW_INDEX)以行形式存储稀疏m × n矩阵M.
+和行压缩格式类似，使用三个（一维）数组(Values, COL_INDEX, ROW_INDEX)以列形式存储稀疏m × n矩阵M.
 
-* Values:存储非零值（从上到下，然后从左到右），长度为m
-* ROW_INDEX:存储Values中值得行索引，长度为m
-* COL_INDEX:长度为m+1,每一列数据在Values数组中的起始索引和结束索引,如：Values中的集合[COL_INDEX[i],COL_INDEX[i+1])表示第i列的数据
+* Values:存储非零值（从上到下，然后从左到右），长度为NNZ
+* ROW_INDEX:存储Values中值的行索引，长度为NNZ
+* COL_INDEX:长度为n+1,每一列数据在Values数组中的起始索引和结束索引,如：Values中的集合[COL_INDEX[i],COL_INDEX[i+1])表示第i列的数据
+
+CSC适合按列访问的场景。一个矩阵的CSC表示等价于其转置矩阵的CSR表示。
 
 
 ::
@@ -86,13 +93,25 @@ Block compressed sparse row (BCSR) Format
 -------------------------------------------------
 BCSR是对CSR的一般化和改进，它和CSR的区别在于把原矩阵分成了大小相同的block，block中的空元素则用0填上，
 于是每一个block都是稠密的，所以val数组会变大一些（需要填充一些0），但是索引却简化了。
+非零元素成块分布时（例如有限元计算或结构化剪枝后的神经网络权重），BCSR能更好地利用SIMD和缓存。
+
+存储空间对比
+-------------------
+不计数据类型的差异，各格式需要存储的元素个数为：
+
+* 稠密存储：m × n
+* COO：3 × NNZ
+* CSR：2 × NNZ + m + 1
+* CSC：2 × NNZ + n + 1
+
+因此只有当矩阵足够稀疏时，稀疏格式才比稠密存储节省空间。
 
 
 稀疏矩阵加速库
 ------------------
 1. `OSKI <https://bebop.cs.berkeley.edu/oski/>`_
 
-2. FastSpMM: An Efﬁcient Libraryfor Sparse Matrix Matrix Producton GPUs
+2. FastSpMM: An Efficient Library for Sparse Matrix Matrix Product on GPUs
 
 3. `librsb <http://librsb.sourceforge.net/>`_ : A shared memory parallel sparse matrix computations library for the Recursive Sparse Blocks format
 
@@ -100,7 +119,7 @@ librsb在大型矩阵上速度很快；这些是内存占用超过内存缓存�
 
 4. Eigen支持Sparse matrix：https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
-5. onnxruntime不支持稀疏矩阵运算：
+5. 记录时onnxruntime不支持稀疏矩阵运算（新版本可能已加入部分稀疏张量支持，使用前以官方文档为准）：
    
 https://github.com/microsoft/onnxruntime/issues/2121
 
