@@ -1,9 +1,14 @@
 cuda调试
 =====================
-NVPROF 和 NVVP英伟达公司自己开发和维护的剖析工具，作为CUDA的一部分提供。
+NVPROF 和 NVVP是英伟达公司自己开发和维护的剖析工具，作为CUDA的一部分提供。
 
 * NVPROF：NVIDIA Profiler(命令行工具)
 * NVVP：NVIDIA Visual Profiler(有图形界面)
+
+.. warning::
+
+    nvprof和nvvp已被废弃：计算能力7.5（Turing）的设备上只能做时间线追踪，不能采集性能指标；
+    计算能力8.0（Ampere）及以上的设备完全不支持。新架构请使用 `Nsight Systems`_ （时间线分析）和 `Nsight Compute`_ （内核分析）。
 
 环境配置
 -----------------------
@@ -46,23 +51,25 @@ CUDA程序运行时间统计
     // Getting elapsed time
     cudaDeviceSynchronize(); // Blocks the host until GPU finishes the work
     sdkStopTimer(&timer);
-    // Getting execution time in micro-secondes
-    float execution_time_ms = sdkGetTimerValue(&timer)
+    // Getting execution time in milliseconds
+    float execution_time_ms = sdkGetTimerValue(&timer);
     // Termination of timer
     sdkDeleteTimer(&timer);
 
 
-NVIDIA Tools Extension (NVTX).
+NVIDIA Tools Extension (NVTX)
 -------------------------------------------
+NVTX可以在代码中标注一段范围，在nvvp、Nsight Systems的时间线上显示出来，便于定位各段代码的耗时。
+
 .. code-block:: cpp
 
-    #include "nvToolsExt.h"
-    cudaProfileStart();
+    #include "nvToolsExt.h"  // NVTX v3为header-only，可以使用 #include <nvtx3/nvToolsExt.h>，不需要链接库
+    cudaProfilerStart();
     nvtxRangePushA("Annotation");
     // Range of GPU operations
-    cudaDeviceSynchronization();
+    cudaDeviceSynchronize();
     nvtxRangePop();
-    cudaProfileStop();
+    cudaProfilerStop();
 
 .. code-block:: shell
 
@@ -74,7 +81,8 @@ NVIDIA Visual profiling
 --------------------------------------------
 .. warning:: 
 
-    NVIDIA Visual profiling不适用于计算能力在7.2以上的显卡，计算能力在7.2以上的显卡推荐使用NsightCompute
+    NVIDIA Visual profiling在计算能力7.5的显卡上只支持时间线追踪，不支持计算能力8.0及以上的显卡，
+    这些显卡推荐使用Nsight Systems和Nsight Compute
 
 .. tip::
 
@@ -129,46 +137,57 @@ NVIDIA Visual profiling远程机器可视化
     Warning: ERR_NVGPUCTRPERM - The user does not have permission to profile on the target device. See the following link for 
     instructions to enable permissions and get more information: https://developer.nvidia.com/ERR_NVGPUCTRPERM
 
-解决办法：
+原因是驱动默认只允许管理员用户读取GPU性能计数器。解决办法有两种：
+
+1. 用root权限运行剖析工具，例如 ``sudo nvprof ...`` 。如果sudo找不到nvprof，需要把cuda的bin目录加入sudo的secure_path：
 
 .. code-block:: shell
 
-    sudo vim /etc/sudoers
+    sudo visudo
     # 修改secure_path
-    secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/usr/local/cuda/bin"
-    #wq!保存
+    Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/usr/local/cuda/bin"
+
+2. 允许所有用户访问性能计数器（需要重启）：
+
+.. code-block:: shell
+
+    echo 'options nvidia NVreg_RestrictProfilingToAdminUsers=0' | sudo tee /etc/modprobe.d/nvidia-profiling.conf
+    sudo update-initramfs -u
+    sudo reboot
 
 
 
 
 使用CUDA error调试CUDA程序
 -----------------------------------
-cudaGetLastError:用于获取最近一次调用CUDA API函数时发生的错误。
+cudaGetLastError:返回运行时记录的最近一次错误，并把错误状态重置为cudaSuccess。
 
 .. code-block:: cpp
     
     cudaError_t cudaGetLastError();
 
-checkCudaError:用于检查CUDA错误,在common/inc/cuda_helper.h中定义
+checkCudaErrors:用于检查CUDA错误，在cuda-samples的Common/helper_cuda.h中定义。下面是一个简化的实现：
 
 .. code-block:: cpp
 
-    #define checkCudaErrors(err) { \
-    if (err != cudaSuccess) { \
-        fprintf(stderr, "checkCudaErrors() API error = %04d \"%s\" from file <%s>, line %i.\n", \
-        err, cudaGetErrorString(err), __FILE__, __LINE__); \
-        exit(-1); \
+    // 先把表达式的结果保存到变量中，避免宏参数被多次求值（否则出错时cudaMalloc等调用会被重复执行）
+    #define checkCudaErrors(call) do { \
+        cudaError_t err_ = (call); \
+        if (err_ != cudaSuccess) { \
+            fprintf(stderr, "checkCudaErrors() API error = %04d \"%s\" from file <%s>, line %i.\n", \
+                    (int)err_, cudaGetErrorString(err_), __FILE__, __LINE__); \
+            exit(EXIT_FAILURE); \
         } \
-    }
-    #endif
+    } while (0)
 
     // 使用
     checkCudaErrors(cudaMalloc((void **)&d_A, N * K * sizeof(float)));
 
 CUDA API使用checkCudaErrors，cuda kernel调用使用
-checkCudaErrors(cudaGetLastError());checkCudaErrors(cudaDeviceSynchronize());检查错误
+checkCudaErrors(cudaGetLastError());checkCudaErrors(cudaDeviceSynchronize());检查错误。
+前者检查内核启动时的错误（例如启动配置无效），后者检查内核执行过程中的错误。
 
-设置CUDA_LAUNCH_BLOCKING=1环境变量，来是的所有kernel执行完成后强制和host同步，来达到检查错误的目的
+设置CUDA_LAUNCH_BLOCKING=1环境变量，使得每次内核启动都等待执行完成后才返回主机，这样错误会在出错的内核调用处被报告，便于定位
 
 CUDA断言
 --------------------
@@ -189,10 +208,12 @@ CUDA断言
 
 Nsight Eclipse调试CUDA程序
 --------------------------------------
-对于Linux和OSX平台的开发，CUDA工具箱提供了Nsight Eclipse。这个工具是基于Eclipse的，所以开发者可以很容易地在CUDA C开发中使用这个工具。
+对于Linux平台的开发，CUDA工具箱提供了Nsight Eclipse。这个工具是基于Eclipse的，所以开发者可以很容易地在CUDA C开发中使用这个工具。
 
-这个工具是作为一个软件包与CUDA工具包一起安装的，所以你不必单独安装这个工具。
-然而，如果你使用的是Linux，需要为其操作配置Java 7
+.. note::
+
+    从CUDA 11开始，Nsight Eclipse Edition被替换为Nsight Eclipse Plugins，需要安装到已有的Eclipse中使用；
+    CUDA 10.2之后也不再支持macOS主机。现在更常用的是VS Code配合Nsight Visual Studio Code Edition插件。
 
 
 CUDA gdb调试
@@ -206,7 +227,7 @@ cuda-gdb大部分调试命令和gdb相同
 
 * help info cuda：列出所有info cuda指令
 * info cuda kernels：列出所有kernel
-* breakpoint kerne_name:像普通函数一样，CUDA-GDB可以在内核函数上设置断点
+* break kernel_name:像普通函数一样，CUDA-GDB可以在内核函数上设置断点
 * help cuda：查看cuda指令
 * cuda device kernel block thread:打印当前线程信息
 * cuda thread：列出当前活跃的GPU线程（若有的话）；cuda thread(1, 1, 1)
@@ -231,24 +252,36 @@ cuda-gdb大部分调试命令和gdb相同
 
     cmake中编译Debug版本设置：
 
-    set(CUDA_NVCC_FLAGS "-G;-g")
+    旧的FindCUDA方式： ``set(CUDA_NVCC_FLAGS "-G;-g")``
+
+    CMake 3.8以后原生支持CUDA语言： ``target_compile_options(target PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:-G;-g>")``
 
 .. note:: 
 
     | 报错：cuda-gdb: error while loading shared libraries: libtinfo.so.5: cannot open shared object file: No such file or directory
-    | 解决方法： sudo apt install libncurses*
+    | 解决方法： sudo apt install libtinfo5 （或 libncurses5）
 
-CUDA-memcheck
----------------------------------
+CUDA-memcheck / Compute Sanitizer
+---------------------------------------
 CUDA-memcheck是运行时检查GPU内存是否越界或非法访问等违规操作的工具。
 
-要使用CUDA-memcheck，需要添加-Xcompiler -rdynamic编译参数。
+.. warning::
+
+    cuda-memcheck在CUDA 11.6中被废弃，在CUDA 12.0中已移除，替代工具是compute-sanitizer，用法基本相同。
+
+编译时加上 ``-lineinfo`` 可以在报错信息中显示出错的源码行号；
+加上 ``-Xcompiler -rdynamic`` 可以在主机端的调用栈中显示函数名。这两个参数都不是必需的。
 
 CUDA-memcheck可以在cuda-gdb中使用，在cuda-gdb命令行通过set cuda memcheck on命令开启CUDA-memcheck
 
 .. code-block:: shell
 
     cuda-memcheck [options] <application>
+    # CUDA 11.6以后
+    compute-sanitizer --tool memcheck <application>   # 检查内存越界、非法访问
+    compute-sanitizer --tool racecheck <application>  # 检查共享内存的数据竞争
+    compute-sanitizer --tool initcheck <application>  # 检查未初始化的全局内存访问
+    compute-sanitizer --tool synccheck <application>  # 检查同步原语的错误使用
 
 Nsight Systems
 ---------------------------
@@ -258,14 +291,14 @@ Nsight Systems是一个系统的性能分析工具，可以在时间轴上可视
 
 Nsight Systems支持图形界面和命令行两种方式，本地调试使用图形界面，远程调试使用命令行生成性能分析数据，再用图像界面打开。
 
-使用前需要配置环境变量：export PATH=$PATH:/usr/local/cuda-11.3/nsight-systems-2021.1.3/target-linux-x64
+使用前需要配置环境变量（路径随CUDA版本变化）：export PATH=$PATH:/usr/local/cuda-11.3/nsight-systems-2021.1.3/target-linux-x64
 
 .. code-block:: shell
 
     nsys profile -t osrt,cuda,nvtx,cublas,cudnn -o baseline -w true \<command\>
 
-所有命令行选项均区分大小写。对于命令开关选项，当使用短选项时，参数应跟在开关后面一个空格；例如-s 进程树。
-当使用长选项时，开关后面应该跟一个等号，然后是参数；例如--sample=进程树。
+所有命令行选项均区分大小写。对于命令开关选项，当使用短选项时，参数应跟在开关后面，中间隔一个空格，例如 ``-t cuda`` 。
+当使用长选项时，开关后面应该跟一个等号，然后是参数，例如 ``--trace=cuda`` 。
 
 
 * -t/--trace
@@ -291,14 +324,17 @@ Nsight Compute是一个kernel级别的分析工具。它收集了GPU的指标信
 
 Nsight Compute同样支持图形界面和命令行
 
-使用前需要配置环境变量：export PATH=$PATH:/usr/local/cuda-11.3/nsight-compute-2021.1.0
+使用前需要配置环境变量（路径随CUDA版本变化）：export PATH=$PATH:/usr/local/cuda-11.3/nsight-compute-2021.1.0
 
 .. code-block:: shell
 
-    nv-nsight-cu-cli -o <output filename> <application command>
+    ncu -o <output filename> <application command>
+    # Nsight Compute 2020.1之前的命令名为 nv-nsight-cu-cli
 
-* 如果不是用-o,性能分析信息会打印在串口
-* --kernel-regex: Specifies the kernel to the profile
+* 如果不使用-o,性能分析信息会打印到终端
+* -k/--kernel-name: 指定要分析的内核，可以用 ``regex:`` 前缀写正则表达式，例如 ``-k regex:gemm``
+* -c/--launch-count: 限制分析的内核启动次数
+* --set full: 采集全部指标（默认只采集基本指标集）
 * --devices: Focuses on profiling a specific GPU
 
 
@@ -316,9 +352,8 @@ nvidia-smi
   - Operation mode:
   
     + Persistence mode (ON/OFF)
-    + Tesla Compute Cluster (TCC)/Windows Display
-     
-  - Driver Model (WDDM) mode
+    + Tesla Compute Cluster (TCC)/Windows Display Driver Model (WDDM) mode
+
   - Fan speed
   - GPU temperature
   - Performance mode
@@ -339,13 +374,14 @@ nvidia-smi命令选项：
   
   - nvidia-smi --query-gpu=timestamp,name,pci.bus_id,driver_version,pstate,
     pcie.link.gen.max,pcie.link.gen.current,temperature.gpu,utilization.gpu,
-    utilization.memory,memory.used,memory.free,memory.used --format=csv -l 1
+    utilization.memory,memory.used,memory.free,memory.total --format=csv -l 1
   - nvidia-smi --query-gpu=index,clocks_throttle_reasons.active,clocks_throttle_reasons.gpu_idle,
     clocks_throttle_reasons.applications_clocks_setting,clocks_throttle_reasons.sw_power_cap,
     clocks_throttle_reasons.hw_slowdown,clocks_throttle_reasons.hw_thermal_slowdown,
     clocks_throttle_reasons.hw_power_brake_slowdown,clocks_throttle_reasons.sync_boost --format=csv
+  - 较新的驱动中clocks_throttle_reasons已更名为clocks_event_reasons，旧名称仍可使用
 
-* -pl=N:以瓦特为单位指定最大功率管理限制。
+* -pl N 或 --power-limit=N:以瓦特为单位指定最大功率管理限制（需要root权限）。
 
 
 * nvidia-smi -q -d CLOCK:查看当前的 GPU 时钟速度、默认时钟速度和最大可能的时钟速度
@@ -369,11 +405,11 @@ nvidia-smi命令选项：
 
 **nvidia-smi pmon -i 0 -s u -o T**
 
-将空GPU0上不同进程使用GPU的信息
+监控GPU0上不同进程使用GPU的信息
 
 * sm%: CUDA core utilization
 * mem%: Sampled time ratio for memory operations
-* enc%/dec%: HW encoder's utilization
+* enc%/dec%: HW encoder's/decoder's utilization
 * fb: FB memory usage
 
 查看多GPU的连接拓扑结构

@@ -2,6 +2,11 @@ cudnn使用
 =====================
 api: https://docs.nvidia.com/deeplearning/cudnn/api/index.html
 
+.. note::
+
+    本文按cuDNN 8的库划分组织（cudnn_ops_infer、cudnn_ops_train、cudnn_cnn_infer、cudnn_cnn_train、cudnn_adv_infer、cudnn_adv_train）。
+    cuDNN 9改为cudnn_graph、cudnn_ops、cudnn_cnn、cudnn_adv等子库，部分旧接口（如旧版RNN接口）已被移除，使用时以对应版本的文档为准。
+
 cudnn_ops_infer.so库
 ------------------------------------
 
@@ -15,7 +20,7 @@ cudnnCreateActivationDescriptor()用于创建一个实例，并且cudnnSetActiva
 
 cudnnCTCLossDescriptor_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnCTCLossDescriptor_t是一个指向不透明结构的指针，该结构保存了 CTC 丢失操作的描述。
+cudnnCTCLossDescriptor_t是一个指向不透明结构的指针，该结构保存了 CTC 损失操作的描述。
 cudnnCreateCTCLossDescriptor()用于创建一个实例，cudnnSetCTCLossDescriptor()用于初始化该实例，
 cudnnDestroyCTCLossDescriptor()用于销毁该实例。
 
@@ -25,11 +30,11 @@ cudnnDropoutDescriptor_t是一个指向不透明结构的指针，该结构保�
 cudnnCreateDropoutDescriptor()用于创建一个实例，cudnnSetDropoutDescriptor()用于初始化该实例，
 cudnnDestroyDropoutDescriptor()用于销毁该实例，
 cudnnGetDropoutDescriptor()用于查询先前初始化实例的字段，
-cudnnRestoreDropoutDescriptor()用于将实例恢复到先前保存的关闭状态。
+cudnnRestoreDropoutDescriptor()用于将实例恢复到先前保存的状态。
 
 cudnnFilterDescriptor_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnFilterDescriptor_t是指向保存卷积的kenerl描述的不透明结构的指针。
+cudnnFilterDescriptor_t是指向保存卷积核(kernel)描述的不透明结构的指针。
 cudnnCreateFilterDescriptor()用于创建一个实例，
 并且必须使用cudnnSetFilter4dDescriptor()或cudnnSetFilterNdDescriptor()来初始化该实例。
 
@@ -37,11 +42,11 @@ cudnnHandle_t
 ~~~~~~~~~~~~~~~~~~~~~~~
 cudnnHandle_t是指向保存 cuDNN 库上下文的不透明结构的指针。
 必须使用cudnnCreate()创建cuDNN 库上下文，并且返回的句柄必须传递给所有后续库函数调用。
-最后应使用 销毁上下文cudnnDestroy()。
+最后应使用cudnnDestroy()销毁上下文。
 该上下文仅与一个 GPU 设备关联，即调用cudnnCreate()时的当前设备。但是，可以在同一 GPU 设备上创建多个上下文。
 
-对于cuDNN的cudnnHandle_t对象，应该避免在多线程之间共享同一个实例。
-这是因为cudnnHandle_t对象并不是线程安全的，多线程之间共享同一个cudnnHandle_t会导致潜在的竞争条件和不确定的行为。
+cuDNN库本身是线程安全的，可以从多个主机线程调用其函数，但多个线程不能同时使用同一个cudnnHandle_t。
+多线程之间同时共享同一个cudnnHandle_t会导致潜在的竞争条件和不确定的行为。
 
 为了在多线程环境中使用cuDNN，每个线程应该拥有自己独立的cudnnHandle_t对象。
 这样可以避免线程之间的干扰，确保cuDNN操作的正确性和稳定性。
@@ -53,7 +58,8 @@ cudnnCreateLRNDescriptor()用于创建一个实例，并且必须使用cudnnSetL
 
 cudnnOpTensorDescriptor_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnOpTensorDescriptor_t是一个指向不透明结构的指针，该结构保存 Tensor Core 操作的描述，用作cudnnOpTensor()的参数。
+cudnnOpTensorDescriptor_t是一个指向不透明结构的指针，该结构保存逐元素张量运算的描述，用作cudnnOpTensor()的参数。
+（官方文档中称为"Tensor Core operation"，但这里指的是张量运算，与Tensor Core硬件无关。）
 cudnnCreateOpTensorDescriptor()用于创建一个实例，并且cudnnSetOpTensorDescriptor()必须用于初始化该实例。
 
 cudnnPoolingDescriptor_t
@@ -78,7 +84,7 @@ cudnnTensorDescriptor_t
 cudnnTensorDescriptor_t是一个指向不透明结构的指针，该结构保存通用 nD 数据集的描述。
 cudnnCreateTensorDescriptor()用于创建一个实例，
 并且必须使用cudnnSetTensorNdDescriptor(),cudnnSetTensor4dDescriptor(),cudnnSetTensor4dDescriptorEx()
-其中一个例程或来初始化该实例。 
+其中一个例程来初始化该实例。 
 
 cudnnTensorTransformDescriptor_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,17 +106,28 @@ cudnnActivationMode_t是一个枚举类型，
 * CUDNN_ACTIVATION_TANH:tanh激活函数      
 * CUDNN_ACTIVATION_CLIPPED_RELU:clip relu激活
 * CUDNN_ACTIVATION_ELU:指数线性函数      
-* CUDNN_ACTIVATION_IDENTITY:不激活，直接穿透  
+* CUDNN_ACTIVATION_SWISH:swish激活函数（cuDNN 8的较新版本加入）
+* CUDNN_ACTIVATION_IDENTITY:不激活，直接穿透。只用于在cudnnConvolutionBiasActivationForward()中跳过激活步骤
+  （此时卷积算法必须为CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM），不能用于cudnnActivationForward()和cudnnActivationBackward()
 
 
 cudnnBatchNormMode_t
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cudnnBatchNormMode_t是一个枚举类型，用于指定cudnnBatchNormalizationForwardInference()、
+cudnnBatchNormalizationForwardTraining()、cudnnBatchNormalizationBackward()和cudnnDeriveBNTensorDescriptor()等函数中的归一化方式。
+
+* CUDNN_BATCHNORM_PER_ACTIVATION:对每个激活值（每个C、H、W位置）分别在N维上做归一化，用于全连接层之后。bnScale等参数的维度为1xCxHxW。
+* CUDNN_BATCHNORM_SPATIAL:对每个通道在N、H、W维上做归一化，用于卷积层之后。bnScale等参数的维度为1xCx1x1。
+* CUDNN_BATCHNORM_SPATIAL_PERSISTENT:与CUDNN_BATCHNORM_SPATIAL相同，但在某些情况下更快，数值上可能有溢出风险。
+
+cudnnBatchNormOps_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 cudnnBatchNormOps_t是一个枚举类型，用于指定
 cudnnGetBatchNormalizationForwardTrainingExWorkspaceSize()、cudnnBatchNormalizationForwardTrainingEx()、
 cudnnGetBatchNormalizationBackwardExWorkspaceSize()、cudnnBatchNormalizationBackwardEx()和
 cudnnGetBatchNormalizationTrainingExReserveSpaceSize()函数中的操作模式。
 
-* CUDNN_BATCHNORM_OPS_BN:每次激活时仅执行批量归一化
+* CUDNN_BATCHNORM_OPS_BN:仅执行批量归一化
 * CUDNN_BATCHNORM_OPS_BN_ACTIVATION:首先进行批量归一化，然后进行激活。
 * CUDNN_BATCHNORM_OPS_BN_ADD_ACTIVATION:执行批量归一化，然后按元素加法，然后执行激活操作
 
@@ -134,7 +151,7 @@ cudnnDataType_t是一个枚举类型，指示张量描述符或滤波器描述�
 * CUDNN_DATA_UINT8:数据是一个 8 位无符号整数。
 * CUDNN_DATA_UINT8x4:数据是 32 位元素，每个元素由 4 个 8 位无符号整数组成。此数据类型仅支持张量格式CUDNN_TENSOR_NCHW_VECT_C。
 * CUDNN_DATA_INT8x32:数据是 32 元素向量，每个元素都是 8 位有符号整数。此数据类型仅支持张量格式CUDNN_TENSOR_NCHW_VECT_C。
-  此外，该数据类型只能与algo 1, 意思是一起使用CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM。有关详细信息，请参阅cudnnConvolutionFwdAlgo_t。
+  此外，该数据类型只能与algo 1（即CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM）一起使用。有关详细信息，请参阅cudnnConvolutionFwdAlgo_t。
 * CUDNN_DATA_BFLOAT16：数据为 16 位量，其中 7 位尾数位、8 位指数位和 1 位符号位。
 * CUDNN_DATA_INT64：数据是 64 位有符号整数。
 * CUDNN_DATA_BOOLEAN：数据是布尔值 ( bool)。
@@ -145,8 +162,8 @@ cudnnDataType_t是一个枚举类型，指示张量描述符或滤波器描述�
   请注意，CUDA 是小端字节序，这意味着最低有效字节具有较低的内存地址。
   例如，在 16 个元素的情况下，01001111 11111100 对于元素 0 到 3 具有值 1，对于元素 4 和 5 具有值 0，对于元素 6 具有值 1，对于元素 7 具有值 0，对于元素 8 和 9 具有值 0，对于元素 10 具有值 1到 15。
 * CUDNN_DATA_FP8_E4M3：数据为 8 位量，其中 3 位尾数位、4 位指数位和 1 位符号位。
-* CUDNN_DATA_FP8_E5M2：The data is an 8-bit quantity, with 2 mantissa bits, 5 exponent bits, and 1 sign bit.
-* CUDNN_DATA_FAST_FLOAT_FOR_FP8：CUDNN_DATA_FLOAT该数据类型是用于 FP8 张量核心运算的 吞吐量较高但精度较低的计算类型（与 相比）
+* CUDNN_DATA_FP8_E5M2：数据为 8 位量，其中 2 位尾数位、5 位指数位和 1 位符号位。
+* CUDNN_DATA_FAST_FLOAT_FOR_FP8：用于 FP8 Tensor Core 运算的计算类型，与CUDNN_DATA_FLOAT相比吞吐量更高，但精度较低。
 
 cudnnDeterminism_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -246,7 +263,7 @@ cudnnGetNormalizationBackwardWorkspaceSize()、cudnnNormalizationBackward()
 
 cudnnOpTensorOp_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnOpTensorOp_t是一个枚举类型，用于指示cudnnOpTensor()例程要使用的 Tensor Core 操作。
+cudnnOpTensorOp_t是一个枚举类型，用于指示cudnnOpTensor()例程要执行的逐元素张量运算。
 该枚举类型用作描述符的字段cudnnOpTensorDescriptor_t。
 
 * CUDNN_OP_TENSOR_ADD:要执行的操作是加法运算。
@@ -271,12 +288,12 @@ cudnnReduceTensorIndices_t
 cudnnReduceTensorIndices_t是一个枚举类型，用于指示cudnnReduceTensor()例程是否计算索引。
 该枚举类型用作描述符的字段cudnnReduceTensorDescriptor_t。
 
-* CUDNN_REDUCE_TENSOR_NO_INDICES：不计算指数。
-* CUDNN_REDUCE_TENSOR_FLATTENED_INDICES：计算指数。得出的指数是相对的，并且是平坦的。
+* CUDNN_REDUCE_TENSOR_NO_INDICES：不计算索引。
+* CUDNN_REDUCE_TENSOR_FLATTENED_INDICES：计算索引。得到的索引是相对于每个归约窗口的，并且是展平(flatten)后的一维索引。
 
 cudnnReduceTensorOp_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnReduceTensorOp_t是一个枚举类型，用于指示cudnnReduceTensor()例程要使用的 Tensor Core 操作。该枚举类型用作描述符的字段cudnnReduceTensorDescriptor_t。
+cudnnReduceTensorOp_t是一个枚举类型，用于指示cudnnReduceTensor()例程要执行的归约运算。该枚举类型用作描述符的字段cudnnReduceTensorDescriptor_t。
 
 * CUDNN_REDUCE_TENSOR_ADD：要执行的操作是加法。
 * CUDNN_REDUCE_TENSOR_MUL：要执行的运算是乘法。
@@ -301,9 +318,9 @@ cudnnRNNForwardInference()、cudnnRNNForwardTraining()、cudnnRNNBackwardData()�
   当使用CUDNN_RNN_ALGO_PERSIST_DYNAMIC持久内核时，在运行时准备并能够使用网络和活动 GPU 的特定参数进行优化。
   因此，在使用CUDNN_RNN_ALGO_PERSIST_DYNAMIC一次性计划时，必须执行准备阶段。然后可以在具有相同模型参数的重复调用中重用这些计划。
 
-使用时支持的隐藏单元最大数量的限制CUDNN_RNN_ALGO_PERSIST_DYNAMIC明显高于使用时的限制CUDNN_RNN_ALGO_PERSIST_STATIC，
-但是当超过 所支持的最大值时，吞吐量可能会显着降低CUDNN_RNN_ALGO_PERSIST_STATIC。
-在这种情况下，这种方法在某些情况下仍然会表现出色CUDNN_RNN_ALGO_STANDARD。CUDNN_RNN_ALGO_PERSIST_DYNAMIC仅在Linux计算机上计算能力 >= 6.0 的设备上受支持。
+使用CUDNN_RNN_ALGO_PERSIST_DYNAMIC时支持的隐藏单元最大数量明显高于CUDNN_RNN_ALGO_PERSIST_STATIC，
+但是当超过CUDNN_RNN_ALGO_PERSIST_STATIC所支持的最大值时，吞吐量可能会显著降低。
+在这种情况下，这种方法在某些情况下仍然会比CUDNN_RNN_ALGO_STANDARD表现更好。CUDNN_RNN_ALGO_PERSIST_DYNAMIC仅在Linux计算机上计算能力 >= 6.0 的设备上受支持。
 
 cudnnSamplerType_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -327,15 +344,15 @@ cudnnSoftmaxAlgorithm_t
 cudnnSoftmaxAlgorithm_t用于选择cudnnSoftmaxForward()和cudnnSoftmaxBackward()中使用的 softmax 函数的实现。
 
 * CUDNN_SOFTMAX_FAST:该实现应用了简单的 softmax 运算。
-* CUDNN_SOFTMAX_ACCURATE:此实现将 softmax 输入域的每个点缩放为其最大值，以避免 softmax 评估中潜在的浮点溢出。
-* CUDNN_SOFTMAX_LOG:此条目执行 log softmax 操作，通过缩放输入域中的每个点来避免溢出，如CUDNN_SOFTMAX_ACCURATE中所示。
+* CUDNN_SOFTMAX_ACCURATE:此实现在计算指数之前，先将输入减去其最大值，以避免 softmax 计算中潜在的浮点溢出。
+* CUDNN_SOFTMAX_LOG:此条目执行 log softmax 操作，同样通过减去最大值来避免溢出，如CUDNN_SOFTMAX_ACCURATE中所示。
 
 cudnnSoftmaxMode_t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cudnnSoftmaxMode_t用于选择cudnnSoftmaxForward()和cudnnSoftmaxBackward()正在计算其结果的数据。
+cudnnSoftmaxMode_t用于选择cudnnSoftmaxForward()和cudnnSoftmaxBackward()在哪些维度上计算softmax。
 
-* CUDNN_SOFTMAX_MODE_INSTANCE:softmax 运算是针对每个图像(N)的各个维度上(C,H,W)进行计算的。
-* CUDNN_SOFTMAX_MODE_CHANNEL:softmax 运算是跨维度(H,W)按每个图像(N)的空间位置(C)计算的。
+* CUDNN_SOFTMAX_MODE_INSTANCE:对每个图像(N)，在(C,H,W)三个维度的全部元素上计算一次softmax。
+* CUDNN_SOFTMAX_MODE_CHANNEL:对每个图像(N)的每个空间位置(H,W)，在通道维(C)上计算softmax。
 
 
 cudnnStatus_t
@@ -344,12 +361,12 @@ cudnnStatus_t是用于函数状态返回的枚举类型。所有 cuDNN 库函数
 
 * CUDNN_STATUS_SUCCESS:成功
 * CUDNN_STATUS_NOT_INITIALIZED：cuDNN 库未正确初始化。
-  当调用cudnnCreate()失败或在cudnnCreate()调用另一个 cuDNN 例程之前尚未调用时，通常会返回此错误。
-  cudnnCreate()在前一种情况下，通常是由于硬件设置中的错误 调用的 CUDA 运行时 API 中出现错误。
+  当调用cudnnCreate()失败，或者在调用其他 cuDNN 例程之前没有调用cudnnCreate()时，通常会返回此错误。
+  前一种情况通常是由于cudnnCreate()调用的 CUDA 运行时 API 出错，或者硬件设置有误。
 * CUDNN_STATUS_ALLOC_FAILED：cuDNN 库内部资源分配失败。这通常是由内部cudaMalloc()故障引起的。
   为了更正，在函数调用之前，尽可能地释放先前分配的内存。
 * CUDNN_STATUS_BAD_PARAM：向函数传递了不正确的值或参数。要更正，请确保传递的所有参数都具有有效值。
-* CUDNN_STATUS_ARCH_MISMATCH：该函数需要当前 GPU 设备所没有的功能。请注意，cuDNN 仅支持计算能力大于或等于 3.0 的设备。
+* CUDNN_STATUS_ARCH_MISMATCH：该函数需要当前 GPU 设备所没有的功能。请注意，cuDNN 对计算能力有最低要求（早期版本为3.0，cuDNN 9为5.0），具体以所用版本的支持矩阵为准。
   要更正，请在具有适当计算能力的设备上编译并运行应用程序。
 * CUDNN_STATUS_MAPPING_ERROR：访问GPU内存空间失败，通常是由于纹理绑定失败造成的。
   要更正，请在函数调用之前取消绑定任何先前绑定的纹理。否则，这可能表明库中存在内部错误/错误。
@@ -389,7 +406,7 @@ cudnnActivationForward()
 该例程允许就地操作；也就是说，xData和yData指针可以相等。
 但是，这要求xDesc和yDesc描述符完全相同（特别是，输入和输出的步长必须匹配，才允许就地操作）
 
-支持所有4 维和 5 维张量格式，但是，当xDesc步幅等于yDesc步幅时，可以获得最佳性能HW-packed。对于超过 5 个维度，张量必须压缩其空间维度。
+支持所有4 维和 5 维张量格式，但是，当xDesc和yDesc的步长相同并且在HW维度上是紧密排列(HW-packed)时，可以获得最佳性能。对于超过 5 个维度，张量的空间维度必须是紧密排列的。
 
 .. code-block:: cpp
 
@@ -438,7 +455,9 @@ cudnnBatchNormalizationForwardInference()
 
 仅支持4D和5D张量。该函数执行的输入变换定义如下:
 
-`y = beta*y + alpha *[bnBias + (bnScale * (x-estimatedMean)/sqrt(epsilon + estimatedVariance)]`
+.. math::
+
+    y = \beta y + \alpha \left[ bnBias + bnScale \cdot \frac{x - estimatedMean}{\sqrt{\epsilon + estimatedVariance}} \right]
 
 .. code-block:: cpp
 
@@ -545,7 +564,7 @@ cudnnCreateLRNDescriptor()
 .. code-block:: cpp
 
     cudnnStatus_t cudnnCreateLRNDescriptor(
-            cudnnLRNDescriptor_t    *poolingDesc);
+            cudnnLRNDescriptor_t    *normDesc);
 
 cudnnCreateOpTensorDescriptor()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -600,7 +619,7 @@ cudnnCreateTensorTransformDescriptor()
 
 cudnnDeriveBNTensorDescriptor()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-该函数从图层的 x 数据描述符中导出批归一化scale、invVariance、bnBias 和 bnScale 子张量的辅助张量描述符。
+该函数根据层的输入x的张量描述符，导出批归一化中mean、invVariance（方差的倒数）、bnBias 和 bnScale 这些子张量的张量描述符。
 
 .. code-block:: cpp
 
@@ -611,8 +630,8 @@ cudnnDeriveBNTensorDescriptor()
 
 cudnnDeriveNormTensorDescriptor()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-该函数根据图层的 x 数据描述符和常模为归一化均值、不变性、normBias 和 normScale 子张量导出张量描述符。
-归一化、均值和不变性共享相同的描述符，而偏置和标度共享相同的描述符。
+该函数根据层的输入x的张量描述符和归一化模式(mode)，导出归一化中mean、invVariance（方差的倒数）、normBias 和 normScale 子张量的张量描述符。
+mean和invVariance共享同一个描述符，normBias和normScale共享同一个描述符。
 
 .. code-block:: cpp
   
@@ -734,7 +753,7 @@ cudnnCreateConvolutionDescriptor()
 
 cudnnSetConvolution2dDescriptor()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-此函数将先前创建的卷积描述符对象初始化为二维相关对象。
+此函数将先前创建的卷积描述符对象初始化为二维卷积。
 此函数假定张量和滤波器描述符对应于前向卷积路径，并检查其设置是否有效。
 相同的卷积描述符可以在后向路径中重复使用，前提是它对应于相同的层。
 
@@ -776,11 +795,13 @@ cudnnGetConvolution2dForwardOutputDim()
     int                                *h,
     int                                *w)
     // convDesc:卷积描述符
-    // inputTensorDesc:输入向量描述符
+    // inputTensorDesc:输入张量描述符
     // filterDesc:滤波器描述符
     // n,c,h,w:输出维度
 
-h和w使用以下公式计算：outputDim = 1 + ( inputDim + 2*pad - (((filterDim-1)*dilation)+1) )/convolutionStride
+h和w使用以下公式计算（除法为向下取整的整数除法）：
+
+``outputDim = 1 + ( inputDim + 2*pad - (((filterDim-1)*dilation)+1) )/convolutionStride``
 
 cudnnGetConvolutionForwardAlgorithmMaxCount()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -855,24 +876,8 @@ cudnnConvolutionForward()
       const cudnnTensorDescriptor_t       yDesc,
       void                               *y)
 
-cudnnAddTensor()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-此函数将偏置张量的缩放值添加到另一个张量中。
-偏置张量 A 的每个维度必须与目标张量 C 的相应维度相匹配，或者必须等于 1。
-在后一种情况下，偏置张量中这些维度的相同值将被用于混合到 C 张量中。
-
-仅支持 4D 和 5D 张量。超出这两个维度，则不支持此例程。
-
-.. code-block:: cpp
-
-  cudnnStatus_t cudnnAddTensor(
-      cudnnHandle_t                     handle,
-      const void                       *alpha,
-      const cudnnTensorDescriptor_t     aDesc,
-      const void                       *A,
-      const void                       *beta,
-      const cudnnTensorDescriptor_t     cDesc,
-      void                             *C)
+卷积之后加偏置可以使用cudnnAddTensor()（属于cudnn_ops_infer库，见上文），
+或者使用cudnnConvolutionBiasActivationForward()把卷积、加偏置和激活融合在一次调用中完成。
 
 
 

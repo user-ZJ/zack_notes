@@ -80,13 +80,10 @@ class CBuffer
         T *temp_ptr = (T *)new T[size_];
         cudaMemcpy(temp_ptr, d_ptr_, size_ * sizeof(T), cudaMemcpyDeviceToHost);
         
-        #pragma omp parallel
-        {
-        #pragma omp for
-            for (int i = 0; i < size_; i++) {
-                if (fabs(temp_ptr[i] - h_ptr_[i]) > 0.0001) 
-                    diff_count++;
-            }
+        #pragma omp parallel for reduction(+:diff_count)
+        for (int i = 0; i < size_; i++) {
+            if (fabs((float)temp_ptr[i] - (float)h_ptr_[i]) > 0.0001)
+                diff_count++;
         }
         delete [] temp_ptr;
 

@@ -3,12 +3,17 @@ cublas使用
 api: https://docs.nvidia.com/cuda/cublas/#using-the-cublas-api
 
 cublasHandle_t：cublasHandle_t是cuBLAS库中的一个类型，用于表示cuBLAS上下文。
-cuBLAS上下文是一个线程本地的对象，用于存储cuBLAS库的状态和资源，
-例如cuBLAS库的版本、当前设备等。
-在使用cuBLAS进行矩阵乘法运算时，需要创建一个或多个cuBLAS上下文，并在每个上下文中执行矩阵乘法操作。
+cuBLAS上下文用于存储cuBLAS库的状态和资源，例如所绑定的设备、流、工作空间、指针模式等。
+所有cuBLAS函数调用都需要传入一个cuBLAS句柄。
+
+.. note::
+
+    cuBLAS默认使用列优先(column-major)存储，与Fortran一致，与C/C++的行优先相反。
+    下文中的lda、ldb等“主维(leading dimension)”指的是列优先存储时一列所占的元素个数（通常等于矩阵的行数），以元素为单位，不是字节数。
+    向量的步长incx、incy也以元素为单位。
 
 * cuBLAS API:应用程序必须在GPU内存空间中分配所需的矩阵和向量，用数据填充它们，调用所需的cuBLAS函数序列，然后将结果从GPU内存空间拷贝回主机
-* cuBLASXt API：多GPU调用的api，数据可以在显存或内存，运算完成后，会将数据拷贝到Host内存
+* cuBLASXt API：多GPU调用的api，矩阵可以位于主机内存或设备内存中，库会自动在多个GPU之间分块计算并完成数据传输，结果写回原来的位置
 * cuBLASLt：一个轻量级库，专用于通用矩阵到矩阵乘法 (GEMM) 运算，具有新的灵活 API。
   该库增加了矩阵数据布局、输入类型、计算类型以及通过参数可编程性选择算法实现和启发式的灵活性。
   用户识别出一组用于预期 GEMM 操作的选项后，这些选项可以针对不同的输入重复使用
@@ -27,7 +32,7 @@ cuBLAS 库上下文的句柄(cublasHandle_t):
 `````````````````
 该库是线程安全的，即使使用相同的句柄，也可以从多个主机线程调用其函数。
 当多个线程共享同一句柄时，更改句柄配置时需要格外小心，因为该更改可能会影响所有线程中后续的 cuBLAS 调用。
-对于手柄的销毁更是如此。所以不建议多个线程共享同一个cuBLAS句柄。
+对于句柄的销毁更是如此。所以不建议多个线程共享同一个cuBLAS句柄。
 
 结果再现性
 `````````````````
@@ -110,7 +115,7 @@ cublasFillMode_t
 
 cublasDiagType_t
 ```````````````````````
-该类型指示密集矩阵的主对角线是否统一，因此不应被函数触及或修改。
+该类型指示密集矩阵的主对角线是否为单位对角线（对角元素全为1）。如果是，函数会把对角元素当作1，不会读取或修改它们。
 
 +----------------------+--------------------------+
 | 值                   | 说明                     |
@@ -405,7 +410,7 @@ cublasSetVector
 `````````````````````````
 该函数支持64位int接口
 
-此函数将n个元素从 GPU 内存空间中的x向量复制到主机内存空间中的y向量。
+此函数将n个元素从主机内存空间中的x向量复制到 GPU 内存空间中的y向量。
 
 由于假定二维矩阵采用列主格式，因此如果向量是矩阵的一部分，则向量增量等于1访问该矩阵的（部分）列。
 类似地，使用等于矩阵主维的增量会导致访问该矩阵的（部分）行。
@@ -413,14 +418,24 @@ cublasSetVector
 .. code-block:: cpp
 
     cublasStatus_t
-    cublasGetVector(int n, int elemSize,
+    cublasSetVector(int n, int elemSize,
                 const void *x, int incx, void *y, int incy);
     // n：元素个数
     // elemSize:元素的字节大小
-    // x:源地址
-    // incx:元素间存储间距
-    // y:目标地址
-    // incy:元素间存储间距
+    // x:源地址（主机内存）
+    // incx:x中相邻元素的间隔，以元素为单位
+    // y:目标地址（设备内存）
+    // incy:y中相邻元素的间隔，以元素为单位
+
+cublasGetVector
+`````````````````````````
+此函数将n个元素从 GPU 内存空间中的x向量复制到主机内存空间中的y向量，参数含义与cublasSetVector()相同。
+
+.. code-block:: cpp
+
+    cublasStatus_t
+    cublasGetVector(int n, int elemSize,
+                const void *x, int incx, void *y, int incy);
 
 cublasSetMatrix
 `````````````````````````
@@ -437,12 +452,14 @@ cublasSetMatrix
     // cols：矩阵的列数。
     // elemSize：每个元素的大小，以字节为单位。
     // A：指向主机内存中的矩阵数据的指针。
-    // lda：矩阵的 leading dimension，即每一行的字节数。
+    // lda：矩阵A的主维，即列优先存储时一列的元素个数（lda >= rows）。
     // B：指向设备内存中的矩阵数据的指针。
-    // ldb：矩阵的 leading dimension，即每一行的字节数。
+    // ldb：矩阵B的主维，即列优先存储时一列的元素个数（ldb >= rows）。
 
 cublasGetMatrix
 ```````````````````````
+此函数将元素图块从GPU 内存空间中的矩阵A复制到主机内存空间中的矩阵B，参数含义与cublasSetMatrix()相同。
+
 .. code-block:: cpp
 
     cublasStatus_t
@@ -497,7 +514,7 @@ cublasSetAtomicsMode
 
 .. code-block:: cpp
 
-    cublasStatus_t cublasSetAtomicsMode(cublasHandlet handle, cublasAtomicsMode_t mode);
+    cublasStatus_t cublasSetAtomicsMode(cublasHandle_t handle, cublasAtomicsMode_t mode);
 
 cublasGetAtomicsMode
 ```````````````````````````
@@ -508,6 +525,10 @@ cublasGetAtomicsMode
 cublasSetMathMode
 ```````````````````````````````
 cublasSetMathMode ()函数使您能够选择cublasMath_t定义的计算精度模式。用户可以将计算精度模式设置为它们的逻辑组合
+
+.. code-block:: cpp
+
+    cublasStatus_t cublasSetMathMode(cublasHandle_t handle, cublasMath_t mode);
 
 cublasGetMathMode
 ```````````````````````````
@@ -589,9 +610,9 @@ cuBLAS 1 级函数
 +-----------------+------------+------------+
 | double          | “d”或“D”   | 实数双精度 |
 +-----------------+------------+------------+
-| cuComplex       | “c”或“C”   | 复杂单精度 |
+| cuComplex       | “c”或“C”   | 复数单精度 |
 +-----------------+------------+------------+
-| cuDoubleComplex | “z”或“Z”   | 复杂双精度 |
+| cuDoubleComplex | “z”或“Z”   | 复数双精度 |
 +-----------------+------------+------------+
 
 缩写 **Re(.)** 和 **Im(.)** 分别代表数字的实部和虚部。
@@ -602,7 +623,11 @@ cublasI<t>amax()
 `````````````````````````````
 支持64位整数
 
-此函数查找最大值元素的（最小）索引。
+此函数查找绝对值最大的元素的（最小）索引。对于复数，比较的是 :math:`|Re(x)|+|Im(x)|` 。
+
+.. warning::
+
+    为了与Fortran兼容，返回的索引从 **1** 开始，在C/C++中使用时需要减1。
 
 .. code-block:: cpp
 
@@ -616,14 +641,14 @@ cublasI<t>amax()
                                 const cuDoubleComplex *x, int incx, int *result);
     // n:元素个数
     // x:设备内存中的数据指针
-    // incx:连续元素之间的步幅，以字节为单位
-    // result:结果，可以在主机内存或设备内存
+    // incx:连续元素之间的步幅，以元素为单位
+    // result:结果（从1开始的索引），可以在主机内存或设备内存
 
 cublasI<t>amin()
 ```````````````````````````
 支持64位整数
 
-该函数查找最小元素的（最小）索引。
+该函数查找绝对值最小的元素的（最小）索引，返回的索引同样从1开始。
 
 .. code-block:: cpp
 
@@ -640,7 +665,7 @@ cublas<t>asum()
 `````````````````````````
 支持64位整数
 
-该函数计算向量x的绝对值之和。
+该函数计算向量x的绝对值之和。对于复数，累加的是 :math:`|Re(x)|+|Im(x)|` 。
 
 .. code-block:: cpp
 
@@ -681,9 +706,9 @@ cublas<t>axpy()
     // alpha:用于乘法的标量，可以在主机或设备内存中
     // n:向量x，y中元素个数
     // x:向量x的起始地址，向量x必须在设备内存中
-    // incx:向量x连续元素之间的步幅，以字节为单位
+    // incx:向量x连续元素之间的步幅，以元素为单位
     // y:向量y的起始地址，向量y必须在设备内存中
-    // incy:向量y连续元素之间的步幅，以字节为单位
+    // incy:向量y连续元素之间的步幅，以元素为单位
 
 cublas<t>copy()
 ```````````````````````````
@@ -739,11 +764,12 @@ cublas<t>dot()
                             cuDoubleComplex       *result);
     // n:向量x和y中的元素数量
     // x,y必须在设备内存中
-    // result:得到的点积，0.0 if n<=0。可在设备后主机内存中
+    // result:得到的点积，0.0 if n<=0。可在设备或主机内存中
+    // dotu为普通点积，dotc会先对x取共轭再做点积
 
 cublas<t>nrm2()
 `````````````````````````
-该函数计算向量x的欧几里德范数(平方和在开方)
+该函数计算向量x的欧几里德范数(平方和再开方)
 
 .. code-block:: cpp
 
@@ -783,7 +809,7 @@ cublas<t>scal()
     cublasStatus_t cublasZdscal(cublasHandle_t handle, int n,
                                 const double          *alpha,
                                 cuDoubleComplex *x, int incx)
-    // alpha:用于乘法的标量,可以在设备会主机内存中
+    // alpha:用于乘法的标量,可以在设备或主机内存中
 
 cublas<t>swap()
 ```````````````````````````
@@ -866,7 +892,7 @@ cublas<t>gemm()
 
 该函数执行矩阵-矩阵乘法
 
-C= :math:`\alpha` AB + :math:`\beta` C
+:math:`C = \alpha \, op(A) \, op(B) + \beta C` ，其中op(X)根据transa/transb取X、X的转置或X的共轭转置
 
 .. code-block:: cpp
 
@@ -910,8 +936,8 @@ C= :math:`\alpha` AB + :math:`\beta` C
                             const __half *B, int ldb,
                             const __half *beta,
                             __half *C, int ldc)
-    // A:mxk B:kxn C:mxn
-    // transa:矩阵A的转置类型，cublas是列优先存储的，要使用行优先需要使用CUBLAS_OP_T，并修改矩阵的宽高
+    // op(A):mxk op(B):kxn C:mxn
+    // transa:矩阵A的转置类型
     // transb:矩阵B的转置类型
     // m:矩阵op(A)和C的行数
     // n:矩阵op(B)和C的列数
@@ -920,11 +946,30 @@ C= :math:`\alpha` AB + :math:`\beta` C
     // A:矩阵A的数据，在设备上，如果transa == CUBLAS_OP_N，维度为lda x k(要求lda>=max(1,m))
     //   否则维度为lda x m (要求lda>=max(1,k))
     // lda:矩阵A的主维。
-    // B:矩阵B的数据，在设备上，如果transa == CUBLAS_OP_N，维度为ldb x n(要求ldb>=max(1,k))
+    // B:矩阵B的数据，在设备上，如果transb == CUBLAS_OP_N，维度为ldb x n(要求ldb>=max(1,k))
     //   否则，维度为ldb x k (要求ldb>=max(1,n))
     // ldb:矩阵B的主维。
     // beta:用于乘法的标量
     // C:矩阵C的数据，在设备上,维度为ldc x n (要求ldc>=max(1,m))
     //   输出是列优先布局
     // ldc:矩阵C的主维。
+
+**行优先矩阵的乘法**
+
+C/C++中的矩阵通常是行优先存储的。一个行优先的mxk矩阵A，在内存中与列优先的kxm矩阵 :math:`A^T` 完全相同。
+因此要计算行优先的 :math:`C=AB` （A为mxk，B为kxn），不需要转置任何数据，只要利用 :math:`C^T = B^T A^T` ，
+交换A、B的位置，按列优先计算 :math:`C^T` 即可，得到的 :math:`C^T` （列优先）正好就是行优先的C：
+
+.. code-block:: cpp
+
+    // A: m x k，B: k x n，C: m x n，三者都是行优先存储
+    cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
+                n, m, k,          // 计算的是 C^T(n x m) = B^T(n x k) * A^T(k x m)
+                &alpha,
+                d_B, n,           // 行优先的B即列优先的B^T，主维为n
+                d_A, k,           // 行优先的A即列优先的A^T，主维为k
+                &beta,
+                d_C, n);          // 列优先的C^T即行优先的C，主维为n
+
+如果对A、B使用CUBLAS_OP_T，得到的C是列优先的，还需要再转置一次才是行优先的结果。
 

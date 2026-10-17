@@ -10,7 +10,7 @@ PagedAttention 的基本原理
 
 PagedAttention：如何解决 GPU 显存瓶颈
 ```````````````````````````````````````````````
-LM 服务的性能受到内存瓶颈的影响。在自回归 decoder 中，所有输入到 LLM 的 token 会产生注意力 key 和 value 的张量，这些张量保存在 GPU 显存中以生成下一个 token。
+LLM 服务的性能受到内存瓶颈的影响。在自回归 decoder 中，所有输入到 LLM 的 token 会产生注意力 key 和 value 的张量，这些张量保存在 GPU 显存中以生成下一个 token。
 这些缓存 key 和 value 的张量通常被称为 KV cache，其具有以下特点：
 
 1. 显存占用大：在 LLaMA-13B 中，缓存单个序列最多需要 1.7GB 显存
@@ -34,12 +34,12 @@ PagedAttention 还有另一个关键优势 —— 高效的内存共享。例如
 
 .. image:: /images/cuda编程/PagedAttention3.webp
 
-PagedAttention 自然地通过其块表格来启动内存共享。与进程共享物理页面的方式类似，PagedAttention 中的不同序列可以通过将它们的逻辑块映射到同一个物理块的方式来共享块。
+PagedAttention 自然地通过其块表来启用内存共享。与进程共享物理页面的方式类似，PagedAttention 中的不同序列可以通过将它们的逻辑块映射到同一个物理块的方式来共享块。
 为了确保安全共享，PagedAttention 会对物理块的引用计数进行跟踪，并实现写时复制（Copy-on-Write）机制。
 
 
 .. image:: /images/cuda编程/PagedAttention4.webp
 
-PageAttention 的内存共享大大减少了复杂采样算法的内存开销，例如并行采样和集束搜索的内存使用量降低了 55%。这可以转化为高达 2.2 倍的吞吐量提升。这种采样方法也在 LLM 服务中变得实用起来。
+PagedAttention 的内存共享大大减少了复杂采样算法的内存开销，例如并行采样和集束搜索的内存使用量降低了 55%。这可以转化为高达 2.2 倍的吞吐量提升。这种采样方法也在 LLM 服务中变得实用起来。
 
 

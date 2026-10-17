@@ -3,6 +3,11 @@ windows系统调试
 
 windows下创建cuda工程(Visual Studio 2017)
 -----------------------------------------------------
+.. note::
+
+   安装CUDA Toolkit时如果勾选了Visual Studio Integration，新建项目时可以直接选择"CUDA Runtime"模板，
+   下面的步骤用于在普通的C++项目中手动添加CUDA支持。
+
 1. 打开Visual Studio,文件->新建->项目
 
 .. image:: /images/cuda编程/cuda_windows1.jpg
@@ -23,6 +28,6 @@ windows下创建cuda工程(Visual Studio 2017)
 
 .. image:: /images/cuda编程/cuda_windows5.jpg
 
-1. 右键打开的项目->属性,配置计算能力
+6. 右键打开的项目->属性,配置计算能力
 
 .. image:: /images/cuda编程/cuda_windows6.jpg

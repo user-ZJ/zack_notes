@@ -1,4 +1,4 @@
-cudaEvent t start, stop;
+cudaEvent_t start, stop;
 cudaEventCreate(&start);
 cudaEventCreate(&stop);
 
@@ -13,7 +13,7 @@ for ( int i = 0; i < 2; ++i) {
 cudaEventRecord(stop, 0);
 cudaEventSynchronize(stop);
 
-float elapsedTime;
+float elapsedTime;  // 单位为毫秒
 cudaEventElapsedTime(&elapsedTime, start, stop);
 
 cudaEventDestroy(start);

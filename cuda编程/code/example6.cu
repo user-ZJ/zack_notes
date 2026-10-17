@@ -1,4 +1,4 @@
-cudaStream t stream[2];
+cudaStream_t stream[2];
 for ( int i = 0; i < 2; ++i)
 cudaStreamCreate(&stream[i]);
 

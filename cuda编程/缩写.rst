@@ -6,13 +6,13 @@ OpenACC: open accelerators
 
 HPC:High Performance Computing
 
-GPUs:Graphic Computing Units
+GPU:Graphics Processing Unit
 
 ILP:Instruction-Level Parallelism
 
-BLAS:Basic Linear Algebra Specification
+BLAS:Basic Linear Algebra Subprograms
 
-CUPTI:CUDA Profiler Tools Interface
+CUPTI:CUDA Profiling Tools Interface
 
 CDP:CUDA dynamic parallelism
 
@@ -20,7 +20,7 @@ MPS：Multi-Process Service
 
 MPI: Message Passing Interface
 
-DGX:NVIDIA DGX，它是由NVIDIA推出的一系列高性能计算系统。DGX代表Deep Learning GPU (Graphics Processing Unit) System，意味着它是专门为深度学习任务设计和优化的计算平台。
+DGX:NVIDIA推出的一系列面向深度学习和高性能计算的服务器与工作站系统。NVIDIA官方没有给出DGX的全称，常见的"Deep Learning GPU System"只是民间说法。
 
 NCCL:NVIDIA Collective Communication Library
 
@@ -30,9 +30,10 @@ NVML:NVIDIA Management Library
 
 ECC:error-correcting code
 
-LCN：是Local Contrast Normalization的缩写，是一种图像增强技术，用于增强图像的对比度和亮度。它通过对图像的局部区域进行归一化，使得图像的边缘和噪声更加突出，从而提高图像的视觉质量。
+LCN：Local Contrast Normalization，局部对比度归一化，早期卷积神经网络中使用的一种归一化层。
+它对每个位置减去其邻域内的（加权）均值，再除以邻域内的标准差，从而消除局部亮度和对比度的差异，使特征对光照变化更鲁棒。
+cuDNN中的cudnnDivisiveNormalizationForward()可用于实现LCN。
 
-SIMTs:Single Instruction Multiple Threads
+SIMT:Single Instruction Multiple Threads
 
 TLB:Translation Lookaside Buffer
-

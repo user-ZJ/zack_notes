@@ -12,9 +12,11 @@ int main()
         cudaDeviceProp prop;
         cudaGetDeviceProperties(&prop, i);
         std::cout << "Device name: " << prop.name << std::endl;
+        std::cout << "Compute capability: " << prop.major << "." << prop.minor << std::endl;
         std::cout << "totalGlobalMem: " << prop.totalGlobalMem / 1024.0 / 1024 << "MB" << std::endl;
         // computeMode：设备计算模式。
-        // computeCapabilityMajor和computeCapabilityMinor：设备的计算能力版本号。
+        // cudaMemGetInfo查询的是当前设备，需要先切换到设备i
+        cudaSetDevice(i);
         size_t free_byte, total_byte;
         cudaMemGetInfo(&free_byte, &total_byte);
         std::cout << "Total memory: " << total_byte / (1024.0 * 1024.0) << " MB" << std::endl;

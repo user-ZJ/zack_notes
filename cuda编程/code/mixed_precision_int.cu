@@ -58,7 +58,7 @@ __global__ void dp4a_kernel(char *d_x, char *d_y, int *d_z, int size)
     for (int i = idx_x; i < size; i+=stride)
         d_z[i] = __dp4a(quad_y[i], quad_x[i], 0);
 #else
-    for (int i = idx_x; i < size; i+=4*stride) {
+    for (int i = idx_x; i < size; i+=stride) {
         int sum = 0;
         for (int j = 0; j < 4; j++)
             sum += d_y[4 * i + j] * d_x[4 * i + j];
